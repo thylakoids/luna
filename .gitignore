@@ -1,0 +1,17 @@
+# Compiled python
+*.pyc
+*.pyd
+
+# OSX dir files
+.DS_Store
+
+#folders
+LungCancerDetection
+dicomdata
+notebook
+
+# large dataset
+lunadata
+
+# test code in maxos
+creat_images.py
