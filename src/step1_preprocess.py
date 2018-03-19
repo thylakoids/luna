@@ -10,7 +10,7 @@ import pickle
 import gzip
 
 from joblib import Parallel, delayed
-from xyz_utils import load_itk, world_2_voxel, voxel_2_world
+from utils.xyz_utils import load_itk, world_2_voxel, voxel_2_world
 #Some constants
 out_folder = '../lunadata/train/'
 img_folder = '../lunadata/subset0/'

@@ -37,6 +37,6 @@ if __name__ == '__main__':
 		plt.imshow(y_train[i][0], cmap=plt.cm.gray)
 		plt.show()
 	model = unet_model()
-	model.fit(x_train,y_train,batch_size=1,epochs=20,verbose=2,validation_data=(x_test,y_test))
+	# model.fit(x_train,y_train,batch_size=1,epochs=20,verbose=2,validation_data=(x_test,y_test))
 
 
