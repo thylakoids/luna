@@ -14,3 +14,9 @@ f["dset3"]=np.arange(15)
 for key in f.keys():
     print(f[key].name)
     print(f[key].value)
+f.close()
+
+# read
+f = h5py.File('myh5py.hdf5','r')
+
+print f.keys()

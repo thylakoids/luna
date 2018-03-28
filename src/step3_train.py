@@ -39,9 +39,11 @@ def load_data(*num):
 		y.append(imgSubResize[np.newaxis,:]) # convert (200,200) to (1,200,200)
 	x=np.array(x)
 	y=np.array(y)
-	#shuffle
-	chooselist=np.random.permutation(range(len(imagePaths)))
-	cutNum=int(np.ceil(len(imagePaths)*0.8))
+	
+
+	np.random.seed(1) #make sure get same result
+	chooselist=np.random.permutation(range(len(imagePaths))) #shuffle
+	cutNum=int(np.ceil(len(imagePaths)*0.9))   # 0.1 for test 
 	train_list = chooselist[:cutNum]
 	test_list = chooselist[cutNum:]
 
@@ -55,13 +57,19 @@ if __name__ == '__main__':
 	x_train,y_train,x_test,y_test=load_data()
 	print len(x_train)
 	print x_train[0].shape
-	for i in range(5):
-		plt.figure(1)
-		plt.subplot(121)
-		plt.imshow(x_train[i][0], cmap=plt.cm.gray)
-		plt.subplot(122)
-		plt.imshow(y_train[i][0], cmap=plt.cm.gray)
-		plt.show()
+	# for i in range(5):
+	# 	plt.figure(1)
+	# 	plt.subplot(121)
+	# 	plt.imshow(x_train[i][0], cmap=plt.cm.gray)
+	# 	plt.subplot(122)
+	# 	plt.imshow(y_train[i][0], cmap=plt.cm.gray)
+	# 	plt.show()
 	model = unet_model()
-	history=model.fit(x_train,y_train,batch_size=1,epochs=20,verbose=2,validation_data=(x_test,y_test))
-	model.save('Unet')
+	history=model.fit(x_train,y_train,batch_size=16,epochs=20,verbose=2,validation_split=0.1) #0.1 for validate
+    # to do: save and plot history
+	loss,accuracy = model.evaluate(x_test,y_test)
+	print('\ntest loss',loss)
+	print('dice_coef',accuracy)
+	#save then delete model
+	model.save('Unet.h5')
+	del model
