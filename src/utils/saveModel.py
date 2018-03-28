@@ -1,7 +1,7 @@
 #coding:utf-8
 import h5py
 import numpy as np
-f=h5py.File("myh5py.hdf5","w")
+f=h5py.File("myh5py.h5","w")
 #分别创建dset1,dset2,dset3这三个数据集
 a=np.arange(20)
 d1=f.create_dataset("dset1",data=a)
@@ -17,6 +17,6 @@ for key in f.keys():
 f.close()
 
 # read
-f = h5py.File('myh5py.hdf5','r')
+f = h5py.File('myh5py.h5','r')
 
 print f.keys()

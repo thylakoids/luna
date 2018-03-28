@@ -1,4 +1,5 @@
 import cv2
+import h5py
 
 from step2_UNET import unet_model
 from step1_preprocess import *
@@ -54,7 +55,7 @@ def minmax(array):
 
 
 if __name__ == '__main__':
-	x_train,y_train,x_test,y_test=load_data()
+	x_train,y_train,x_test,y_test=load_data(20)
 	print len(x_train)
 	print x_train[0].shape
 	# for i in range(5):
@@ -65,11 +66,16 @@ if __name__ == '__main__':
 	# 	plt.imshow(y_train[i][0], cmap=plt.cm.gray)
 	# 	plt.show()
 	model = unet_model()
-	history=model.fit(x_train,y_train,batch_size=16,epochs=20,verbose=2,validation_split=0.1) #0.1 for validate
-    # to do: save and plot history
+	history=model.fit(x_train,y_train,batch_size=4,epochs=20,verbose=2,validation_split=0.1) #0.1 for validate
+    # to do : save histoty,plot history
+	f=h5py.File("Unet-test_history.h5","w")
+	f['dice_coef']=history.history['dice_coef']
+	f['val_dice_coef']=history.history['val_dice_coef']
+	f.close
+
 	loss,accuracy = model.evaluate(x_test,y_test)
 	print('\ntest loss',loss)
 	print('dice_coef',accuracy)
 	#save then delete model
-	model.save('Unet.h5')
+	model.save('Unet-test.h5')
 	del model
