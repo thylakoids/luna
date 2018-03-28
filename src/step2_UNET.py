@@ -19,7 +19,7 @@ def dice_coef_loss(y_true, y_pred):
 The UNET model is compiled in this function.
 '''
 def unet_model():
-	inputs = Input((1, 512, 512))
+	inputs = Input((1, 128, 128))
 	conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
 	conv1 = Dropout(0.2)(conv1)
 	conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv1)

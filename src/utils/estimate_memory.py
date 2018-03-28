@@ -26,4 +26,4 @@ if __name__ == '__main__':
 	sys.path.append("..")
 	from step2_UNET import unet_model
 	model = unet_model()
-	get_model_memory_usage(2,model)
+	get_model_memory_usage(16,model)

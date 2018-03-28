@@ -1,10 +1,16 @@
+import cv2
+
 from step2_UNET import unet_model
 from step1_preprocess import *
 from keras.utils import plot_model
 from matplotlib import pyplot as plt
 
-def load_data():
+def load_data(*num):
 	imagePaths = glob.glob('{}*.pkl.gz'.format(SAVE_FOLDER_lung_mask_))
+	if len(num)==1:
+		imagePaths=imagePaths[:num[0]]
+	elif len(num)>1:
+		raise ValueError('too many variables')
 	x=[]
 	y=[]
 	for imagePath in imagePaths:
@@ -19,11 +25,31 @@ def load_data():
 		file = gzip.open(imagePath.replace(SAVE_FOLDER_lung_mask,SAVE_FOLDER_nodule_mask))
 		l_slice_nodule_mask= pickle.load(file)
 		file.close()
-		x.append(l_slice_image*l_slice_lung_mask[np.newaxis,:]) #??????
-		y.append(l_slice_nodule_mask[np.newaxis,:])
+
+		img = (l_slice_image*l_slice_lung_mask).transpose() #transpose
+		x_min,x_max = minmax(np.where(img.sum(axis=1)!=0)[0])
+		y_min,y_max = minmax(np.where(img.sum(axis=0)!=0)[0])
+		imgSub = img[x_min:x_max,y_min:y_max]# get the subimage
+		imgSubResize=cv2.resize(imgSub,(128,128)) #resize to 200*200
+		x.append(imgSubResize[np.newaxis,:]) # convert (200,200) to (1,200,200)
+
+		img = l_slice_nodule_mask.transpose() #transpose
+		imgSub = img[x_min:x_max,y_min:y_max]# get the subimage
+		imgSubResize=cv2.resize(imgSub,(128,128)) #resize to 200*200
+		y.append(imgSubResize[np.newaxis,:]) # convert (200,200) to (1,200,200)
 	x=np.array(x)
 	y=np.array(y)
-	return x[:10],y[:10],x[10:20],y[10:20]
+	#shuffle
+	chooselist=np.random.permutation(range(len(imagePaths)))
+	cutNum=int(np.ceil(len(imagePaths)*0.8))
+	train_list = chooselist[:cutNum]
+	test_list = chooselist[cutNum:]
+
+
+	return x[train_list],y[train_list],x[test_list],y[test_list]
+def minmax(array):
+	return array.min(),array.max()
+
 
 if __name__ == '__main__':
 	x_train,y_train,x_test,y_test=load_data()
@@ -37,6 +63,5 @@ if __name__ == '__main__':
 		plt.imshow(y_train[i][0], cmap=plt.cm.gray)
 		plt.show()
 	model = unet_model()
-	# model.fit(x_train,y_train,batch_size=1,epochs=20,verbose=2,validation_data=(x_test,y_test))
-
-
+	history=model.fit(x_train,y_train,batch_size=1,epochs=20,verbose=2,validation_data=(x_test,y_test))
+	model.save('Unet')
