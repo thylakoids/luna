@@ -4,11 +4,12 @@ from skimage import measure
 
 import scipy.ndimage
 
-def plot_ct_scan(scan):
+def plot_ct_scan(scan,name=False,plot=True):
     skip=60
     nClom=3
+    while scan.shape[0]<=skip*nClom:
+        skip=int(skip/2)
     N=skip*nClom
-
 
     f,plots = plt.subplots(int(scan.shape[0]/N)+1,nClom,figsize=(25, 25))
     for i in range(0, scan.shape[0], skip):
@@ -16,7 +17,10 @@ def plot_ct_scan(scan):
         plots[int(i / N), int((i % N) / skip)].imshow(scan[i],cmap=plt.cm.gray) 
     for j in range(nClom):
         plots[int(i / N), j].axis('off')
-    plt.show()
+    if name:
+        plt.savefig(name)
+    if plot:
+        plt.show()
 def plot_3d(image, threshold=-300,zoom=0.5): #########
     
     # Position the scan upright, 

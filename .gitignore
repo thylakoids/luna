@@ -16,4 +16,9 @@ lunadata
 # test code in maxos
 creat_images.py
 
+#pycharm
 .idea
+#jupyter
+.ipynb_checkpoints
+
+*.png

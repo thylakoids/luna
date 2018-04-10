@@ -24,54 +24,58 @@ from scipy import stats
 annotations_path = '../lunadata/CSVFILE/annotations.csv'
 contain = 'rawdata'
 
-RESIZE_SPACING = [1, 1, 1]
 mkdir(slicesLungs_folder(contain))
 mkdir(slicesNodule_folder(contain))
 
 def draw_circles(image,cands,origin,spacing,size=1):  ##############    to do 
-    image_mask = np.zeros(image.shape)
-    for cand in cands.values:
-        radius = np.ceil(cand[4])/2
-        worldCoord = np.asarray([float(cand[3]),float(cand[2]),float(cand[1])])
-        voxelCoord = world_2_voxel(worldCoord, origin, spacing)
-        print voxelCoord,radius
-        for z in range(int(voxelCoord[0]-radius),int(np.ceil(voxelCoord[0]+radius+1))):
-            radius1=(radius**2-np.absolute(z-voxelCoord[0])**2)
-            if radius1<=0:
-                continue
-            radius1=radius1**0.5
-            image_mask[z,int(voxelCoord[1]-radius1):int(np.ceil(voxelCoord[1]+radius1)),int(voxelCoord[2]-radius1):int(np.ceil(voxelCoord[2]+radius1))]=int(1)
-    return image_mask
-    # #make empty matrix, which will be filled with the mask
     # image_mask = np.zeros(image.shape)
-    # #run over all the nodules in the lungs
-    # for ca in cands.values:
-    #     #get middel x-,y-, and z-worldcoordinate of the nodule
-    #     radius = np.ceil(ca[4])/2*size
-    #     coord_x = ca[3]
-    #     coord_y = ca[2]
-    #     coord_z = ca[1]
-    #     image_coord = np.array((coord_x,coord_y,coord_z))
-    #
-    #     #determine voxel coordinate given the worldcoordinate
-    #     image_coord = world_2_voxel(image_coord,origin,spacing)
-    #
-    #     #determine the range of the nodule
-    #     noduleRange = np.linspace(-radius, radius,ca[4]/RESIZE_SPACING[0]*4*size)
-    #
-    #     #create the mask
-    #     for x in noduleRange:
-    #         for y in noduleRange:
-    #             for z in noduleRange:
-    #                 coords = world_2_voxel(np.array((coord_x+x,coord_y+y,coord_z+z)),origin,spacing)
-    #                 dis=np.linalg.norm(image_coord-coords) * RESIZE_SPACING[0]
-    #                 if dis<= radius:
-    #                     if size>1:
-    #                         image_mask[int(np.round(coords[0])),int(np.round(coords[1])),int(np.round(coords[2]))] = stats.norm.pdf(dis,0,radius/size)
-    #                     else:
-    #                         image_mask[int(np.round(coords[0])),int(np.round(coords[1])),int(np.round(coords[2]))] = int(1)
-    # image_mask=image_mask/image_mask.max()
+    # for cand in cands.values:
+    #     radius = np.ceil(cand[4])/2
+    #     worldCoord = np.asarray([float(cand[3]),float(cand[2]),float(cand[1])])
+    #     voxelCoord = world_2_voxel(worldCoord, origin, spacing)
+    #     print voxelCoord,radius
+    #     for z in range(int(voxelCoord[0]-radius),int(np.ceil(voxelCoord[0]+radius+1))):
+    #         radius1=(radius**2-np.absolute(z-voxelCoord[0])**2)
+    #         if radius1<=0:
+    #             continue
+    #         radius1=radius1**0.5
+    #         for y in range(int(voxelCoord[1] - radius1), int(np.ceil(voxelCoord[1] + radius1 + 1))):
+    #             radius2 = (radius1 ** 2 - np.absolute(y - voxelCoord[1]) ** 2)
+    #             if radius2<=0:
+    #                 continue
+    #             radius2=radius2**0.5
+    #             image_mask[z,y,int(voxelCoord[2]-radius2):int(np.ceil(voxelCoord[2]+radius2))]=int(1)
     # return image_mask
+    #make empty matrix, which will be filled with the mask
+    image_mask = np.zeros(image.shape)
+    #run over all the nodules in the lungs
+    for ca in cands.values:
+        #get middel x-,y-, and z-worldcoordinate of the nodule
+        radius = np.ceil(ca[4])/2*size
+        coord_x = ca[3]
+        coord_y = ca[2]
+        coord_z = ca[1]
+        image_coord = np.array((coord_x,coord_y,coord_z))
+
+        #determine voxel coordinate given the worldcoordinate
+        image_coord = world_2_voxel(image_coord,origin,spacing)
+
+        #determine the range of the nodule
+        noduleRange = np.linspace(-radius, radius,ca[4]*4*size)
+
+        #create the mask
+        for x in noduleRange:
+            for y in noduleRange:
+                for z in noduleRange:
+                    coords = world_2_voxel(np.array((coord_x+x,coord_y+y,coord_z+z)),origin,spacing)
+                    dis=np.linalg.norm(image_coord-coords)
+                    if dis<= radius:
+                        if size>1:
+                            image_mask[int(np.round(coords[0])),int(np.round(coords[1])),int(np.round(coords[2]))] = stats.norm.pdf(dis,0,radius/size)
+                        else:
+                            image_mask[int(np.round(coords[0])),int(np.round(coords[1])),int(np.round(coords[2]))] = int(1)
+    image_mask=image_mask/image_mask.max()
+    return image_mask
 
 def show_slice(imagePath, annotations):
     image, origin, spacing = load_pickle(imagePath)
@@ -81,7 +85,7 @@ def show_slice(imagePath, annotations):
     imageName = os.path.split(imagePath)[1].replace('.pkl.gz','')
     print imageName
     image_annotations = annotations[annotations['seriesuid'] == imageName]
-    nodule_mask = draw_circles(image,image_annotations,origin,spacing,2)
+    nodule_mask = draw_circles(image,image_annotations,origin,spacing,size=2)
     # plot_3d(image)
     # plot_ct_scan(image)
     # plot_ct_scan(nodule_mask)
@@ -117,7 +121,7 @@ def show_slice(imagePath, annotations):
         # image_s=image[z,xs:xe,ys:ye]
         nodule_s=nodule_mask[z,:,:]
         image_s=image[z,:,:]
-        image_3c=np.stack((image_s,image_s,image_s)).transpose(1,2,0)
+        # image_3c=np.stack((image_s,image_s,image_s)).transpose(1,2,0)
         # plt.figure(1)
         # plt.imshow(nodule_s,cmap=plt.cm.bone)
         # plt.subplot(221)
@@ -144,12 +148,55 @@ def show_slice(imagePath, annotations):
         plt.subplot(221)
         plt.imshow(nodule_3c)
         plt.subplot(222)
-        plt.imshow(image_s_lung,cmap=plt.cm.gray)
+        plt.imshow(image_s_lung,cmap=plt.cm.bone)
         plt.subplot(223)
         plt.imshow(image_3c+(1-alpha)*image_nodule_3c+alpha*nodule_3c)
         plt.subplot(224)
         plt.imshow((1-alpha)*image_3c+(1-alpha)*image_nodule_3c+alpha*nodule_3c)
         plt.show()
+def minmax(array):
+    return array.min(),array.max()
+def create_slice(imagePath,annotations):
+    image, origin, spacing = load_pickle(imagePath)
+    # image = normalizePlanes(image) # normalized online to save storage space?
+    image[image<-1000]=-1000 #where has lung?
+    # determine the annotations in a lung from csv file
+    imageName = os.path.split(imagePath)[1].replace('.pkl.gz', '')
+    print imageName
+    image_annotations = annotations[annotations['seriesuid'] == imageName]
+
+
+    # calculate resize factor
+    resize_shape = image.shape*spacing
+    new_shape = np.round(resize_shape)
+    new_resize = new_shape / image.shape
+    new_spacing = spacing /new_resize
+
+    #resize image & resize nodule_mask with bilinear interpolation,still int16
+    resize_image = scipy.ndimage.zoom(image,new_resize,order=1)
+    nodule_mask = draw_circles(resize_image, image_annotations, origin, new_spacing, size=1)
+
+    #Determine which slices contain nodules
+    #todo: 1.positive slices and negative slices 2. in z,y,x direction
+    maxshape=0
+    for z in range(nodule_mask.shape[0]):
+        img = resize_image[z]
+        mask = nodule_mask[z]
+        try:
+            # x: axis 1,y:axis0
+            x_min,x_max = minmax(np.where(img.sum(axis=0)>-1000*img.shape[1])[0])
+            y_min,y_max = minmax(np.where(img.sum(axis=1)>-1000*img.shape[0])[0])
+            imgSub = img[y_min:y_max, x_min:x_max]
+            maxshape_now = max(imgSub.shape)
+            if maxshape_now > maxshape:
+                maxshape = maxshape_now
+        except ValueError:
+            print 'no lung pixel detected'
+    print maxshape
+    #save slices
+
+    #todo 1.determine lung region 2.padding to ?? then resize to 256,to make sure the spacing is the same
+
 
 
 
@@ -164,7 +211,11 @@ if __name__=='__main__':
     contain = 'rawdata'
     segmentedLungsPaths=segmentedLungs_folder(contain)
     imagePaths = glob.glob('{}*.pkl.gz'.format(segmentedLungsPaths))
-    show_slice(imagePaths[2],annotations)
+    # show_slice(imagePaths[3],annotations)
+
+    # create_slice(imagePaths[3],annotations)
+    img,_,_=load_pickle(imagePaths[3]) # todo: how to segment
+    plot_ct_scan(img)
 
 
 

@@ -81,7 +81,7 @@ def largest_label_volume(im, bg=-1):
 
 def segment_lung_mask(image, fill_lung_structures=True):
     
-    # not actually binary, but 1 and 2. 
+    # not actually binary, but 1 and 2.  1 for lung and air, 2 for others
     # 0 is treated as background, which we do not want
     binary_image = np.array(image > -320, dtype=np.int8)+1
     labels = measure.label(binary_image)
@@ -164,20 +164,22 @@ def test3D():
     print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
     img_folder = '../lunadata/rawdata/'
     # processfolder(img_folder)
-    imagePaths = glob.glob('{}*.mhd'.format(img_folder)) 
-    imagePath=imagePaths[2]
-    lung3D,origin,spacing=load_itk(imagePath)
-    mask_lung3D = segment_lung_mask(lung3D, True)
-    lung3D[mask_lung3D==0]=0 #0 water
-    plot_3d(lung3D,-320,0.25)
+    imagePaths = glob.glob('{}*.mhd'.format(img_folder))
+    for i in range(len(imagePaths)):
+        imagePath=imagePaths[i]
+        lung3D,origin,spacing=load_itk(imagePath)
+        mask_lung3D = segment_lung_mask(lung3D, True)
+        plot_ct_scan(lung3D, name='origin{}.png'.format(i), plot=False)
+        lung3D[mask_lung3D==0]=-1000 #0 water
+        plot_ct_scan(lung3D, name='processP{}.png'.format(i), plot=False)
     print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))
 
 if __name__ == '__main__':
-    start_time = time.time()
-    print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
-    img_folder = '../lunadata/rawdata/'
-    processfolder(img_folder)
-    print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))
+    # start_time = time.time()
+    # print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
+    # img_folder = '../lunadata/rawdata/'
+    # processfolder(img_folder)
+    # print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))
 
-    # test3D()
+    test3D()
 
