@@ -1,26 +1,17 @@
-import SimpleITK as sitk
-import numpy as np
-import os
-import pandas as pd
-import time
 import glob
-import skimage.transform
-import scipy.ndimage
-import pickle
 import gzip
-import cv2
+import pickle
 
 import matplotlib.pyplot as plt
-
-from joblib import Parallel, delayed
-from typing import Optional
-
-from utils.xyz import load_pickle, load_itk, load_slice, world_2_voxel, voxel_2_world
-from utils.pathname import *
-from utils.visualization import plot_ct_scan, plot_3d
-from utils.normalize import normalizePlanes
+import numpy as np
+import pandas as pd
+import scipy.ndimage
 from scipy import stats
-from skimage.morphology import disk,binary_dilation,binary_closing
+from skimage.morphology import disk, binary_dilation, binary_closing
+
+from utils.normalize import normalizePlanes
+from utils.pathname import *
+from utils.xyz import load_pickle, load_itk, load_slice, world_2_voxel, voxel_2_world
 
 # some constants
 annotations_path = '../lunadata/CSVFILE/annotations.csv'
@@ -142,11 +133,6 @@ def show_circle(imagePath, annotations):
         plt.imshow((1 - alpha) * image_3c + (
                     1 - alpha) * image_nodule_3c + alpha * nodule_3c)
     plt.show()
-
-
-def minmax(array):
-    return array.min(), array.max()
-
 
 def create_slice(imagePath, annotations):
     lung_mask, origin, spacing = load_pickle(imagePath)

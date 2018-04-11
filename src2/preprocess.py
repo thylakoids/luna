@@ -8,7 +8,6 @@ import time
 from multiprocessing import cpu_count
 from joblib import Parallel, delayed
 from skimage import measure
-from skimage.morphology import binary_closing,ball,binary_dilation
 
 from utils.visualization import plot_ct_scan
 from utils.xyz import load_itk

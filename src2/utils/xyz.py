@@ -30,8 +30,8 @@ def load_pickle(filename):
     return image, origin, spacing
 def load_slice(filename):
     file = gzip.open(filename,'rb')
-    image = pickle.load(file)
-    lung_mask= pickle.load(file) #
+    image = pickle.load(file) #int 16
+    lung_mask= pickle.load(file) #int 8
     nodule_mask= pickle.load(file)#int 8
     origin = pickle.load(file)
     spacing = pickle.load(file)
