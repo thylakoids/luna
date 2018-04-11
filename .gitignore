@@ -20,5 +20,6 @@ creat_images.py
 .idea
 #jupyter
 .ipynb_checkpoints
+*.ipynb
 
 *.png
