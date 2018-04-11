@@ -1,8 +1,10 @@
 import numpy as np
 import SimpleITK as sitk
-from matplotlib import pyplot as plt
 import gzip
 import pickle
+
+from skimage.morphology import disk,binary_dilation,binary_closing
+from matplotlib import pyplot as plt
 
 def load_itk(filename):
     itkimage = sitk.ReadImage(filename)
@@ -26,6 +28,18 @@ def load_pickle(filename):
     spacing = pickle.load(file)
     file.close()
     return image, origin, spacing
+def load_slice(filename):
+    file = gzip.open(filename,'rb')
+    image = pickle.load(file)
+    lung_mask= pickle.load(file) #
+    nodule_mask= pickle.load(file)#int 8
+    origin = pickle.load(file)
+    spacing = pickle.load(file)
+    file.close()
+    # print lung_mask.dtype
+    lung_mask = binary_dilation(lung_mask,disk(2))
+    lung_mask = binary_closing(lung_mask,disk(10))
+    return image, lung_mask, nodule_mask, origin, spacing
 if __name__ == "__main__":
     image, origin, spacing = load_itk('../../lunadata/rawdata/1.3.6.1.4.1.14519.5.2.1.6279.6001.317087518531899043292346860596.mhd')
     print 'slice0:\n',image[:,:,0]
