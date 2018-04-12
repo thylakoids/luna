@@ -11,6 +11,7 @@ from skimage import measure
 
 from utils.visualization import plot_ct_scan
 from utils.xyz import load_itk
+from utils.pathname import input_folder
 
 
 def largest_label_volume(im, bg=-1):
@@ -114,8 +115,9 @@ def test3D():
 if __name__ == '__main__':
     start_time = time.time()
     print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
-    img_folder = '../lunadata/rawdata/'
-    processfolder(img_folder)
+    img_folders = ['rawdata']
+    for img_folder in img_folders:
+        processfolder(input_folder(img_folder))
     print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))
     # test3D()
 

@@ -24,7 +24,7 @@ The UNET model is compiled in this function.
 
 
 def unet_model():
-    inputs = Input((1, 128, 128))
+    inputs = Input((1, 256, 256))
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
     conv1 = Dropout(0.2)(conv1)
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(conv1)

@@ -1,5 +1,5 @@
 
-def zero_center(image,PIXEL_MEAN=0.11):
+def zero_center(image,PIXEL_MEAN=0.17):
     '''
     zero center
     :param image: input image

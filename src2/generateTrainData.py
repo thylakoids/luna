@@ -13,11 +13,6 @@ from utils.normalize import normalizePlanes
 from utils.pathname import *
 from utils.xyz import load_pickle, load_itk, load_slice, world_2_voxel, voxel_2_world
 
-# some constants
-annotations_path = '../lunadata/CSVFILE/annotations.csv'
-contain = 'rawdata'
-mkdir_iter(slices_folder(contain))
-
 
 def draw_circlesV2(image, cands, origin, spacing):
     # looks more clever, but less precise than draw_circles
@@ -78,7 +73,7 @@ def draw_circles(image, cands, origin, spacing, size=1):
         return image_mask.astype('int8')
 
 
-def show_circle(imagePath, annotations):
+def show_circle(imagePath, annotations,contain):
     lung_mask, origin, spacing = load_pickle(imagePath)
     # image = normalizePlanes(image) # normalized online to save storage space?
     # determine the annotations in a lung from csv file
@@ -134,7 +129,7 @@ def show_circle(imagePath, annotations):
                     1 - alpha) * image_nodule_3c + alpha * nodule_3c)
     plt.show()
 
-def create_slice(imagePath, annotations):
+def create_slice(imagePath, annotations, contain):
     lung_mask, origin, spacing = load_pickle(imagePath)
     # image = normalizePlanes(image) # normalized online to save storage space?
     # determine the annotations in a lung from csv file
@@ -166,7 +161,10 @@ def create_slice(imagePath, annotations):
     lower_offset = offset - upper_offset
 
     new_origin = voxel_2_world([0, -upper_offset, -upper_offset], origin, new_spacing)
-    padding_lung[:,upper_offset:-lower_offset,upper_offset:-lower_offset] = resize_lung
+    if offset>0:
+        padding_lung[:,upper_offset:-lower_offset,upper_offset:-lower_offset] = resize_lung
+    else:
+        padding_lung=resize_lung#offset==0
     padding_lung_mask[:, upper_offset:-lower_offset, upper_offset:-lower_offset] = resize_lung_mask
 
 
@@ -221,8 +219,8 @@ def create_slice(imagePath, annotations):
             pickle.dump(new_spacing,file,protocol=-1)
             file.close()
 
-def show_slice(num=10):
-    imagePaths = glob.glob('{}*{}.pkl.gz'.format(slices_folder(contain),'+x'))
+def show_slice(contain,num=10):
+    imagePaths = glob.glob('{}*{}.pkl.gz'.format(slices_folder(contain),'+z'))
     imagePaths = imagePaths[:num]
     for imagePath in imagePaths:
         img, lung_mask, nodule_mask,_,_=load_slice(imagePath)
@@ -236,12 +234,23 @@ def show_slice(num=10):
 
 
 if __name__ == '__main__':
+    annotations_path = '../lunadata/CSVFILE/annotations.csv'
     annotations = pd.read_csv(annotations_path)
-    contain = 'rawdata'
-    segmentedLungsPaths = segmentedLungs_folder(contain)
-    imagePaths = glob.glob('{}*.pkl.gz'.format(segmentedLungsPaths))
-    # show_circle(imagePaths[2],annotations)
-    # create_slice(imagePaths[2],annotations)
-    show_slice(10)
-    #todo load_data()
+    contains = ['rawdata']
+    for contain in contains:
+        mkdir_iter(slices_folder(contain))
+        segmentedLungsPaths = segmentedLungs_folder(contain)
+        imagePaths = glob.glob('{}*.pkl.gz'.format(segmentedLungsPaths))
+        for imagePath in imagePaths:
+            if '1.3.6.1.4.1.14519.5.2.1.6279.6001.333145094436144085379032922488' in imagePath:
+                create_slice(imagePath, annotations,contain)
+            # show_circle(imagePath,annotations,contain)
+            # show_slice(contain)
+
+            #todo find padding_shape
+
+
+
+
+
 
