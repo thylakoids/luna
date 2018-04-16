@@ -4,6 +4,8 @@ from skimage import measure
 
 import scipy.ndimage
 
+import numpy as np
+
 def plot_ct_scan(scan,name=False,plot=True):
     skip=60
     nClom=3
@@ -43,3 +45,19 @@ def plot_3d(image, threshold=-300,zoom=0.5): #########
     ax.set_zlim(0, p.shape[2])
 
     plt.show()
+def impose(img,mask):
+    image_nodule = img.copy()
+    image_lung = img.copy()
+    image_nodule[mask == 0] = 0
+    image_lung[mask != 0] = 0
+
+    image_3c = np.stack(
+        (image_lung, image_lung, image_lung)).transpose(1, 2, 0)
+    image_nodule_3c = np.stack(
+        (image_nodule, image_nodule, image_nodule)).transpose(1, 2, 0)
+    alpha = 0.6
+    col = np.array([222, 129, 0]) / 255.0
+    # col = np.array([175, 99, 37]) / 255.0 / alpha
+    nodule_3c = np.stack((mask * col[0], mask * col[1],
+                          mask * col[2])).transpose(1, 2, 0)
+    return image_3c + (1 - alpha) * image_nodule_3c + alpha * nodule_3c

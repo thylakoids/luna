@@ -7,7 +7,9 @@ import scipy.ndimage
 from utils.pathname import slices_folder
 from utils.xyz import load_slice
 from utils.normalize import normalizePlanes, zero_center
+from utils.visualization import impose
 from UNET import unet_model
+from matplotlib import pyplot as plt
 
 
 def generate_data_from_file(paths):
@@ -32,10 +34,10 @@ def generate_data_from_file(paths):
                 lung, lung_mask, nodule_mask, _,_ =load_slice(imagePaths[k][(i+j)%nSample])
                 lung[lung_mask==0]=-1000
                 lung = normalizePlanes(lung)
-                lung = zero_center(lung)
+                # lung = zero_center(lung)
                 resize=256.0/lung.shape[1]
                 lung = scipy.ndimage.zoom(lung,resize)
-                nodule_mask = scipy.ndimage.zoom(lung_mask, resize)
+                nodule_mask = scipy.ndimage.zoom(nodule_mask, resize)
 
                 x.append(lung[np.newaxis,:])
                 y.append(nodule_mask[np.newaxis,:])
@@ -51,8 +53,8 @@ def main():
     test_data = generate_data_from_file([slices_folder(contain) for contain in contains_test])
 
     model = unet_model()
-    steps=1000
-    history=model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=10,verbose=2,
+    steps=500
+    history=model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=6,verbose=2,
                                 validation_data=validation_data,validation_steps=steps,initial_epoch=0)
     # to do : save histoty,plot history
     f=h5py.File("Unet-history.h5","w")
@@ -72,6 +74,16 @@ def tes_generator():
     while 1:
         x, y=train_data.next()
         print x.shape,y.shape
+        _, plots = plt.subplots(3, 4,figsize=(25,25))
+        for i in range(x.shape[0]):
+            plots[0, i].imshow(x[i][0],cmap=plt.cm.bone)
+            plots[1, i].imshow(y[i][0],cmap=plt.cm.bone)
+            xy=impose(x[i][0],y[i][0])
+            plots[2, i].imshow(xy)
+        plt.savefig('data.png')
+        break
+
+
 if __name__ == '__main__':
     main()
 
