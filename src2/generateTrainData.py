@@ -12,7 +12,8 @@ from skimage.morphology import disk, binary_dilation, binary_closing
 from utils.normalize import normalizePlanes
 from utils.pathname import *
 from utils.xyz import load_pickle, load_itk, load_slice, world_2_voxel, voxel_2_world
-
+from multiprocessing import cpu_count
+from joblib import Parallel, delayed
 
 def draw_circlesV2(image, cands, origin, spacing):
     # looks more clever, but less precise than draw_circles
@@ -66,8 +67,8 @@ def draw_circles(image, cands, origin, spacing, size=1):
                             image_mask[int(np.round(coords[0])), int(
                                 np.round(coords[1])), int(
                                 np.round(coords[2]))] = int(1)
-    image_mask = image_mask / image_mask.max()
     if size>1:
+        image_mask = image_mask / image_mask.max()
         return image_mask
     else:
         return image_mask.astype('int8')
@@ -130,12 +131,12 @@ def show_circle(imagePath, annotations,contain):
     plt.show()
 
 def create_slice(imagePath, annotations, contain):
+    print imagePath
     lung_mask, origin, spacing = load_pickle(imagePath)
     # image = normalizePlanes(image) # normalized online to save storage space?
     # determine the annotations in a lung from csv file
     imageName = os.path.split(imagePath)[1].replace('.pkl.gz', '')
     lung,_,_=load_itk(input_folder(contain)+imageName+'.mhd')
-    print imageName
     image_annotations = annotations[annotations['seriesuid'] == imageName]
 
     # calculate resize factor
@@ -149,7 +150,7 @@ def create_slice(imagePath, annotations, contain):
     resize_lung_mask = scipy.ndimage.zoom(lung_mask, new_resize, order=1)
     assert(spacing[1]==spacing[2],'x spacing != y spacing')
     # padding to 400, adjust the size, find the maximum of resize_image.shape[1] todo
-    padding_shape=400
+    padding_shape=512
     assert(padding_shape>=resize_shape[1],'padding size < resize image shape')
     assert(new_shape==resize_lung.shape,'????')
 
@@ -163,9 +164,10 @@ def create_slice(imagePath, annotations, contain):
     new_origin = voxel_2_world([0, -upper_offset, -upper_offset], origin, new_spacing)
     if offset>0:
         padding_lung[:,upper_offset:-lower_offset,upper_offset:-lower_offset] = resize_lung
+        padding_lung_mask[:, upper_offset:-lower_offset, upper_offset:-lower_offset] = resize_lung_mask
     else:
         padding_lung=resize_lung#offset==0
-    padding_lung_mask[:, upper_offset:-lower_offset, upper_offset:-lower_offset] = resize_lung_mask
+        padding_lung_mask=resize_lung_mask
 
 
     nodule_mask = draw_circles(padding_lung, image_annotations, new_origin, new_spacing)
@@ -186,38 +188,38 @@ def create_slice(imagePath, annotations, contain):
             pickle.dump(new_origin, file, protocol=-1)
             pickle.dump(new_spacing,file,protocol=-1)
             file.close()
-    for y in range(nodule_mask.shape[1]):
-        lung = padding_lung[:,y,:]
-        lung_mask = padding_lung_mask[:,y,:]
-        mask = nodule_mask[:,y,:]
-        if lung_mask.sum()>0:#this slice has some lung
-            if mask.sum()>0:#this slice has nodule
-                savePath = '{}{}_Slice{}.+y.pkl.gz'.format(slices_folder(contain),imageName,y)
-            else:#this slice has lung but no nodule
-                savePath = '{}{}_Slice{}.-y.pkl.gz'.format(slices_folder(contain),imageName,y)
-            file = gzip.open(savePath, 'wb')
-            pickle.dump(lung, file, protocol=-1)
-            pickle.dump(lung_mask, file, protocol=-1)
-            pickle.dump(mask,file,protocol=-1)
-            pickle.dump(new_origin, file, protocol=-1)
-            pickle.dump(new_spacing,file,protocol=-1)
-            file.close()
-    for x in range(nodule_mask.shape[2]):
-        lung = padding_lung[:,:,x]
-        lung_mask = padding_lung_mask[:,:,x]
-        mask = nodule_mask[:,:,x]
-        if lung_mask.sum()>0:#this slice has some lung
-            if mask.sum()>0:#this slice has nodule
-                savePath = '{}{}_Slice{}.+x.pkl.gz'.format(slices_folder(contain),imageName,x)
-            else:#this slice has lung but no nodule
-                savePath = '{}{}_Slice{}.-x.pkl.gz'.format(slices_folder(contain),imageName,x)
-            file = gzip.open(savePath, 'wb')
-            pickle.dump(lung, file, protocol=-1)
-            pickle.dump(lung_mask, file, protocol=-1)
-            pickle.dump(mask,file,protocol=-1)
-            pickle.dump(new_origin, file, protocol=-1)
-            pickle.dump(new_spacing,file,protocol=-1)
-            file.close()
+    # for y in range(nodule_mask.shape[1]):
+    #     lung = padding_lung[:,y,:]
+    #     lung_mask = padding_lung_mask[:,y,:]
+    #     mask = nodule_mask[:,y,:]
+    #     if lung_mask.sum()>0:#this slice has some lung
+    #         if mask.sum()>0:#this slice has nodule
+    #             savePath = '{}{}_Slice{}.+y.pkl.gz'.format(slices_folder(contain),imageName,y)
+    #         else:#this slice has lung but no nodule
+    #             savePath = '{}{}_Slice{}.-y.pkl.gz'.format(slices_folder(contain),imageName,y)
+    #         file = gzip.open(savePath, 'wb')
+    #         pickle.dump(lung, file, protocol=-1)
+    #         pickle.dump(lung_mask, file, protocol=-1)
+    #         pickle.dump(mask,file,protocol=-1)
+    #         pickle.dump(new_origin, file, protocol=-1)
+    #         pickle.dump(new_spacing,file,protocol=-1)
+    #         file.close()
+    # for x in range(nodule_mask.shape[2]):
+    #     lung = padding_lung[:,:,x]
+    #     lung_mask = padding_lung_mask[:,:,x]
+    #     mask = nodule_mask[:,:,x]
+    #     if lung_mask.sum()>0:#this slice has some lung
+    #         if mask.sum()>0:#this slice has nodule
+    #             savePath = '{}{}_Slice{}.+x.pkl.gz'.format(slices_folder(contain),imageName,x)
+    #         else:#this slice has lung but no nodule
+    #             savePath = '{}{}_Slice{}.-x.pkl.gz'.format(slices_folder(contain),imageName,x)
+    #         file = gzip.open(savePath, 'wb')
+    #         pickle.dump(lung, file, protocol=-1)
+    #         pickle.dump(lung_mask, file, protocol=-1)
+    #         pickle.dump(mask,file,protocol=-1)
+    #         pickle.dump(new_origin, file, protocol=-1)
+    #         pickle.dump(new_spacing,file,protocol=-1)
+    #         file.close()
 
 def show_slice(contain,num=10):
     imagePaths = glob.glob('{}*{}.pkl.gz'.format(slices_folder(contain),'+z'))
@@ -232,22 +234,36 @@ def show_slice(contain,num=10):
         plt.imshow(nodule_mask,cmap=plt.cm.gray)
         plt.show()
 
-
+def tes_realLungSize():
+    contains = ['subset{}'.format(i) for i in range(10)]
+    real_shapes=[]
+    for contain in contains:
+        print contain
+        img_folder = input_folder(contain)
+        imagePaths = glob.glob('{}*.mhd'.format(img_folder))
+        for imagePath in imagePaths:
+            print imagePath
+            lung3D, _, spacing = load_itk(imagePath)
+            real_shape=lung3D.shape*spacing
+            real_shapes.append(real_shape)
+    result = np.array(real_shapes)
+    return result # array([165.5, 236. , 236. ]) array([416., 499.99975586, 499.99975586])
 if __name__ == '__main__':
     annotations_path = '../lunadata/CSVFILE/annotations.csv'
     annotations = pd.read_csv(annotations_path)
-    contains = ['rawdata']
+    contains = ['subset{}'.format(i) for i in range(10)]
     for contain in contains:
         mkdir_iter(slices_folder(contain))
         segmentedLungsPaths = segmentedLungs_folder(contain)
         imagePaths = glob.glob('{}*.pkl.gz'.format(segmentedLungsPaths))
-        for imagePath in imagePaths:
-            if '1.3.6.1.4.1.14519.5.2.1.6279.6001.333145094436144085379032922488' in imagePath:
-                create_slice(imagePath, annotations,contain)
-            # show_circle(imagePath,annotations,contain)
-            # show_slice(contain)
 
-            #todo find padding_shape
+        Parallel(n_jobs=cpu_count() - 1)(delayed(create_slice)(imagePath, annotations,contain) for imagePath in imagePaths)
+        # for imagePath in imagePaths:
+        #     print imagePath
+        #     create_slice(imagePath, annotations,contain)
+        #     # show_circle(imagePath,annotations,contain)
+        #     # show_slice(contain)
+
 
 
 

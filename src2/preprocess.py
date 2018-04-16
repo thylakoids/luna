@@ -11,7 +11,7 @@ from skimage import measure
 
 from utils.visualization import plot_ct_scan
 from utils.xyz import load_itk
-from utils.pathname import input_folder
+from utils.pathname import input_folder,mkdir,segmentedLungs_folder
 
 
 def largest_label_volume(im, bg=-1):
@@ -92,30 +92,29 @@ def processSingle3D(imagePath):
         print '{} can not get good segmentation result'.format(imagePath)
 def processfolder(img_folder):
     contain=img_folder.split('/')[-2]
-    out_folder =  img_folder.replace(contain,contain+'_segmentedLungs/')
-    if not os.path.exists(out_folder):
-        os.mkdir(out_folder)
+    out_folder =  segmentedLungs_folder(contain)
+    mkdir(out_folder)
     imagePaths = glob.glob('{}*.mhd'.format(img_folder))    
-    Parallel(n_jobs=cpu_count())(delayed(processSingle3D)(imagePath) for imagePath in imagePaths)
+    Parallel(n_jobs=cpu_count()-1)(delayed(processSingle3D)(imagePath) for imagePath in imagePaths)
 
-def test3D():
-    start_time = time.time()
-    print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
-    img_folder = '../lunadata/rawdata/'
-    # processfolder(img_folder)
-    imagePaths = glob.glob('{}*.mhd'.format(img_folder))
-    for i in range(len(imagePaths)):
-        imagePath=imagePaths[i]
-        lung3D,origin,spacing=load_itk(imagePath)
-        mask_lung3D = segment_lung_mask(lung3D, True)
-        plot_ct_scan(lung3D, name='origin{}.png'.format(i), plot=False)
-        plot_ct_scan(mask_lung3D, name='mask{}.png'.format(i), plot=False)
-    print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))
+# def test3D():
+#     start_time = time.time()
+#     print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
+#     img_folder = '../lunadata/rawdata/'
+#     # processfolder(img_folder)
+#     imagePaths = glob.glob('{}*.mhd'.format(img_folder))
+#     for i in range(len(imagePaths)):
+#         imagePath=imagePaths[i]
+#         lung3D,origin,spacing=load_itk(imagePath)
+#         mask_lung3D = segment_lung_mask(lung3D, True)
+#         plot_ct_scan(lung3D, name='origin{}.png'.format(i), plot=False)
+#         plot_ct_scan(mask_lung3D, name='mask{}.png'.format(i), plot=False)
+#     print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))
 
 if __name__ == '__main__':
     start_time = time.time()
     print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
-    img_folders = ['rawdata']
+    img_folders = ['subset{}'.format(i) for i in range(2,10)]
     for img_folder in img_folders:
         processfolder(input_folder(img_folder))
     print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))

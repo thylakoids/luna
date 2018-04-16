@@ -17,16 +17,19 @@ def generate_data_from_file(paths):
     for path in paths:
         PositiveImagePaths.extend(glob.glob('{}*.+z*pkl.gz'.format(path)))
         NegativeImagePaths.extend(glob.glob('{}*.-z*pkl.gz'.format(path)))
+    random.shuffle(PositiveImagePaths)
+    random.shuffle(NegativeImagePaths)
 
+    batchSize=4
+    i=0
+    nSample=len(PositiveImagePaths)
     while 1:
-        random.shuffle(PositiveImagePaths)
-        random.shuffle(NegativeImagePaths)
         imagePaths =[PositiveImagePaths,NegativeImagePaths]
         x=[]
         y=[]
-        for j in range(8):
+        for j in range(batchSize/2):
             for k in range(2):
-                lung, lung_mask, nodule_mask, _,_ =load_slice(imagePaths[k][j])
+                lung, lung_mask, nodule_mask, _,_ =load_slice(imagePaths[k][(i+j)%nSample])
                 lung[lung_mask==0]=-1000
                 lung = normalizePlanes(lung)
                 lung = zero_center(lung)
@@ -36,30 +39,40 @@ def generate_data_from_file(paths):
 
                 x.append(lung[np.newaxis,:])
                 y.append(nodule_mask[np.newaxis,:])
+        i+=batchSize/2
+        i=i%nSample
         yield np.array(x),np.array(y)
-
-if __name__ == '__main__':
-    contain = 'rawdata'
-    train_data=generate_data_from_file([slices_folder(contain)])
-    validation_data = generate_data_from_file([slices_folder(contain)])
-    test_data = generate_data_from_file([slices_folder(contain)])
-    # x,y=train_data.next()
-    # print x.shape,y.shape
+def main():
+    contains = ['subset{}'.format(i) for i in range(8)]
+    contains_val = ['subset{}'.format(8)]
+    contains_test = ['subset{}'.format(9)]
+    train_data=generate_data_from_file([slices_folder(contain) for contain in contains])
+    validation_data = generate_data_from_file([slices_folder(contain) for contain in contains_val])
+    test_data = generate_data_from_file([slices_folder(contain) for contain in contains_test])
 
     model = unet_model()
-    history=model.fit_generator(train_data,steps_per_epoch=10,epochs=10,verbose=2,
-                                validation_data=validation_data,validation_steps=10)
+    steps=1000
+    history=model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=10,verbose=2,
+                                validation_data=validation_data,validation_steps=steps,initial_epoch=0)
     # to do : save histoty,plot history
-    f=h5py.File("Unet-test_history.h5","w")
+    f=h5py.File("Unet-history.h5","w")
     f['dice_coef']=history.history['dice_coef']
     f['val_dice_coef']=history.history['val_dice_coef']
     f.close
 
-    loss,accuracy = model.evaluate_generator(test_data,steps=10)
+    loss,accuracy = model.evaluate_generator(test_data,steps=steps)
     print('\ntest loss',loss)
     print('dice_coef',accuracy)
     #save then delete model
-    model.save('Unet-test.h5')
+    model.save('Unet-model.h5')
     del model
+def tes_generator():
+    contains = ['subset0']
+    train_data = generate_data_from_file([slices_folder(contain) for contain in contains])
+    while 1:
+        x, y=train_data.next()
+        print x.shape,y.shape
+if __name__ == '__main__':
+    main()
 
 
