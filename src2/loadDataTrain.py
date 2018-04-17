@@ -3,6 +3,7 @@ import numpy as np
 import h5py
 import random
 
+from skimage.transform import rescale
 import scipy.ndimage
 from utils.pathname import slices_folder
 from utils.xyz import load_slice
@@ -36,8 +37,8 @@ def generate_data_from_file(paths):
                 lung = normalizePlanes(lung)
                 # lung = zero_center(lung)
                 resize=256.0/lung.shape[1]
-                lung = scipy.ndimage.zoom(lung,resize)
-                nodule_mask = scipy.ndimage.zoom(nodule_mask, resize)
+                lung = rescale(lung,resize)
+                nodule_mask = rescale(nodule_mask, resize,order=0)
 
                 x.append(lung[np.newaxis,:])
                 y.append(nodule_mask[np.newaxis,:])
@@ -71,20 +72,20 @@ def main():
 def tes_generator():
     contains = ['subset0']
     train_data = generate_data_from_file([slices_folder(contain) for contain in contains])
-    while 1:
+    for i in range(10):
         x, y=train_data.next()
         print x.shape,y.shape
-        _, plots = plt.subplots(3, 4,figsize=(25,25))
-        for i in range(x.shape[0]):
-            plots[0, i].imshow(x[i][0],cmap=plt.cm.bone)
-            plots[1, i].imshow(y[i][0],cmap=plt.cm.bone)
-            xy=impose(x[i][0],y[i][0])
-            plots[2, i].imshow(xy)
-        plt.savefig('data.png')
-        break
+        # _, plots = plt.subplots(3, 4,figsize=(25,25))
+        # for i in range(x.shape[0]):
+        #     plots[0, i].imshow(x[i][0],cmap=plt.cm.bone)
+        #     plots[1, i].imshow(y[i][0],cmap=plt.cm.bone)
+        #     xy=impose(x[i][0],y[i][0])
+        #     plots[2, i].imshow(xy)
+        plt.imshow(y[0][0])
+        plt.savefig('data{}.png'.format(i))
 
 
 if __name__ == '__main__':
-    main()
+    tes_generator()
 
 

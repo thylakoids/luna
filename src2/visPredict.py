@@ -10,7 +10,7 @@ def vispre():
     contains_test = ['subset{}'.format(9)]
     test_data = generate_data_from_file([slices_folder(contain) for contain in contains_test])
     #load model
-    model = load_model("Unet-model_20.h5", custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
+    model = load_model("Unet-model.h5", custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
 
 
     X,Y = test_data.next()

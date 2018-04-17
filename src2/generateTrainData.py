@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import scipy.ndimage
 from scipy import stats
-from skimage.morphology import disk, binary_dilation, binary_closing
+from skimage.morphology import disk, binary_dilation, binary_closing,ball
+from skimage.transform import rescale
 
 from utils.normalize import normalizePlanes
 from utils.pathname import *
@@ -23,7 +24,7 @@ def draw_circlesV2(image, cands, origin, spacing):
     for ca in cands.values:
         radius = ca[4] / 2
         world_ball = ball(radius)
-        image_ball = scipy.ndimage.zoom(world_ball, 1 / spacing)
+        image_ball = rescale(world_ball, 1 / spacing,order=0)
         world_origin = np.array((ca[3], ca[2], ca[1]))
         image_origin = world_2_voxel(world_origin, origin, spacing)  # origin
         ball_origin = [int(np.round(image_origin[0] - image_ball.shape[0]/2)),
@@ -146,8 +147,8 @@ def create_slice(imagePath, annotations, contain):
     new_spacing = spacing / new_resize
 
     # resize image & resize nodule_mask with bilinear interpolation,still int16
-    resize_lung = scipy.ndimage.zoom(lung, new_resize, order=1)
-    resize_lung_mask = scipy.ndimage.zoom(lung_mask, new_resize, order=1)
+    resize_lung = rescale(lung, new_resize)
+    resize_lung_mask = rescale(lung_mask, new_resize, order=0)
     assert(spacing[1]==spacing[2],'x spacing != y spacing')
     # padding to 400, adjust the size, find the maximum of resize_image.shape[1] todo
     padding_shape=512
@@ -232,7 +233,7 @@ def show_slice(contain,num=10):
         plt.imshow(lung_mask,cmap=plt.cm.gray)
         plt.subplot(223)
         plt.imshow(nodule_mask,cmap=plt.cm.gray)
-        plt.show()
+        plt.savefig('slice.png')
 
 def tes_realLungSize():
     contains = ['subset{}'.format(i) for i in range(10)]
@@ -260,9 +261,10 @@ if __name__ == '__main__':
         Parallel(n_jobs=cpu_count() - 1)(delayed(create_slice)(imagePath, annotations,contain) for imagePath in imagePaths)
         # for imagePath in imagePaths:
         #     print imagePath
-        #     create_slice(imagePath, annotations,contain)
+        #     # create_slice(imagePath, annotations,contain)
         #     # show_circle(imagePath,annotations,contain)
-        #     # show_slice(contain)
+        #     show_slice(contain)
+        #     break
 
 
 
