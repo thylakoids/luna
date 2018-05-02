@@ -11,7 +11,7 @@ from skimage import measure
 
 from utils.visualization import plot_ct_scan
 from utils.xyz import load_itk
-from utils.pathname import input_folder,mkdir,segmentedLungs_folder
+from utils.pathname import input_folder,mkdir,segmentedLungs_folder,contain_folder
 
 
 def largest_label_volume(im, bg=-1):
@@ -79,7 +79,7 @@ def processSingle3D(imagePath):
     mask_lung3D = segment_lung_mask(lung3D)
     if mask_lung3D.sum() ** (1.0 / 3)>50:
         #save the segmented 3Dlung
-        contain = imagePath.split('/')[-2]
+        contain = contain_folder(imagePath)
         savePath = imagePath.replace(contain,contain+'_segmentedLungs')
         savePath = savePath.replace('.mhd','.pkl.gz')
         file = gzip.open(savePath,'wb')
@@ -91,10 +91,11 @@ def processSingle3D(imagePath):
     else:
         print '{} can not get good segmentation result'.format(imagePath)
 def processfolder(img_folder):
-    contain=img_folder.split('/')[-2]
+    # contain=img_folder.split('/')[-2]
+    contain = os.path.split(img_folder)[-1]
     out_folder =  segmentedLungs_folder(contain)
     mkdir(out_folder)
-    imagePaths = glob.glob('{}*.mhd'.format(img_folder))    
+    imagePaths = glob.glob(os.path.join(img_folder,'*.mhd'))
     Parallel(n_jobs=cpu_count()-1)(delayed(processSingle3D)(imagePath) for imagePath in imagePaths)
 
 # def test3D():
@@ -113,10 +114,11 @@ def processfolder(img_folder):
 
 if __name__ == '__main__':
     start_time = time.time()
-    print '{} - start Processing'.format(time.strftime("%H:%M:%s"))
-    img_folders = ['subset{}'.format(i) for i in range(2,10)]
+    print '{} - start Processing'.format(time.strftime("%H:%M:%S"))
+    # img_folders = ['subset{}'.format(i) for i in range(2,10)]
+    img_folders = ['rawdata']
     for img_folder in img_folders:
         processfolder(input_folder(img_folder))
-    print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%s"),np.floor(time.time()-start_time))
+    print '{} - Processing took {} seconds'.format(time.strftime("%H:%M:%S"),np.floor(time.time()-start_time))
     # test3D()
 

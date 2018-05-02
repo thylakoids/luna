@@ -5,10 +5,10 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy.ndimage
+from scipy import ndimage as nd
 from scipy import stats
 from skimage.morphology import disk, binary_dilation, binary_closing,ball
-from skimage.transform import rescale
+from skimage.transform import resize , rescale
 
 from utils.normalize import normalizePlanes
 from utils.pathname import *
@@ -119,6 +119,7 @@ def show_circle(imagePath, annotations,contain):
         nodule_3c = np.stack((nodule_s * col[0], nodule_s * col[1],
                               nodule_s * col[2])).transpose(1, 2, 0)
 
+
         plt.figure()
         plt.subplot(221)
         plt.imshow(mask_s,cmap=plt.cm.bone)
@@ -136,8 +137,8 @@ def create_slice(imagePath, annotations, contain):
     lung_mask, origin, spacing = load_pickle(imagePath)
     # image = normalizePlanes(image) # normalized online to save storage space?
     # determine the annotations in a lung from csv file
-    imageName = os.path.split(imagePath)[1].replace('.pkl.gz', '')
-    lung,_,_=load_itk(input_folder(contain)+imageName+'.mhd')
+    imageName = os.path.basename(imagePath).replace('.pkl.gz', '')
+    lung,_,_=load_itk(os.path.join(input_folder(contain),imageName+'.mhd'))
     image_annotations = annotations[annotations['seriesuid'] == imageName]
 
     # calculate resize factor
@@ -147,8 +148,8 @@ def create_slice(imagePath, annotations, contain):
     new_spacing = spacing / new_resize
 
     # resize image & resize nodule_mask with bilinear interpolation,still int16
-    resize_lung = rescale(lung, new_resize)
-    resize_lung_mask = rescale(lung_mask, new_resize, order=0)
+    resize_lung = nd.interpolation.zoom(lung, new_resize)
+    resize_lung_mask = nd.interpolation.zoom(lung_mask, new_resize, order=0)
     assert(spacing[1]==spacing[2],'x spacing != y spacing')
     # padding to 400, adjust the size, find the maximum of resize_image.shape[1] todo
     padding_shape=512
@@ -179,9 +180,11 @@ def create_slice(imagePath, annotations, contain):
         mask = nodule_mask[z]
         if lung_mask.sum()>0:#this slice has some lung
             if mask.sum()>0:#this slice has nodule
-                savePath = '{}{}_Slice{}.+z.pkl.gz'.format(slices_folder(contain),imageName,z)
+                savePath = os.path.join(slices_folder(contain),'{}_slice{}.+z.pkl.gz'.format(imageName,z))
+                # savePath = '{}{}_Slice{}.+z.pkl.gz'.format(slices_folder(contain),imageName,z)
             else:#this slice has lung but no nodule
-                savePath = '{}{}_Slice{}.-z.pkl.gz'.format(slices_folder(contain), imageName, z)
+                savePath = os.path.join(slices_folder(contain), '{}_slice{}.-z.pkl.gz'.format(imageName, z))
+                # savePath = '{}{}_Slice{}.-z.pkl.gz'.format(slices_folder(contain), imageName, z)
             file = gzip.open(savePath, 'wb')
             pickle.dump(lung, file, protocol=-1)
             pickle.dump(lung_mask,file,protocol=-1)
@@ -222,19 +225,6 @@ def create_slice(imagePath, annotations, contain):
     #         pickle.dump(new_spacing,file,protocol=-1)
     #         file.close()
 
-def show_slice(contain,num=10):
-    imagePaths = glob.glob('{}*{}.pkl.gz'.format(slices_folder(contain),'+z'))
-    imagePaths = imagePaths[:num]
-    for imagePath in imagePaths:
-        img, lung_mask, nodule_mask,_,_=load_slice(imagePath)
-        plt.subplot(221)
-        plt.imshow(img,cmap=plt.cm.gray)
-        plt.subplot(222)
-        plt.imshow(lung_mask,cmap=plt.cm.gray)
-        plt.subplot(223)
-        plt.imshow(nodule_mask,cmap=plt.cm.gray)
-        plt.savefig('slice.png')
-
 def tes_realLungSize():
     contains = ['subset{}'.format(i) for i in range(10)]
     real_shapes=[]
@@ -250,20 +240,20 @@ def tes_realLungSize():
     result = np.array(real_shapes)
     return result # array([165.5, 236. , 236. ]) array([416., 499.99975586, 499.99975586])
 if __name__ == '__main__':
-    annotations_path = '../lunadata/CSVFILE/annotations.csv'
+    annotations_path = correct_path('../lunadata/CSVFILE/annotations.csv')
     annotations = pd.read_csv(annotations_path)
-    contains = ['subset{}'.format(i) for i in range(10)]
+    # contains = ['subset{}'.format(i) for i in range(10)]
+    contains = ['rawdata']
     for contain in contains:
         mkdir_iter(slices_folder(contain))
         segmentedLungsPaths = segmentedLungs_folder(contain)
-        imagePaths = glob.glob('{}*.pkl.gz'.format(segmentedLungsPaths))
+        imagePaths = glob.glob(os.path.join(segmentedLungsPaths,'*.pkl.gz'))
 
-        Parallel(n_jobs=cpu_count() - 1)(delayed(create_slice)(imagePath, annotations,contain) for imagePath in imagePaths)
+        Parallel(n_jobs=cpu_count()-1)(delayed(create_slice)(imagePath, annotations,contain) for imagePath in imagePaths)
         # for imagePath in imagePaths:
         #     print imagePath
         #     # create_slice(imagePath, annotations,contain)
         #     # show_circle(imagePath,annotations,contain)
-        #     show_slice(contain)
         #     break
 
 
