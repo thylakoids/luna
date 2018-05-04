@@ -28,7 +28,7 @@ def load_pickle(filename):
     spacing = pickle.load(file)
     file.close()
     return image, origin, spacing
-def load_slice(filename):
+def load_slice(filename,dilation = True):
     file = gzip.open(filename,'rb')
     image = pickle.load(file) #int 16
     lung_mask= pickle.load(file) #int 8
@@ -37,8 +37,9 @@ def load_slice(filename):
     spacing = pickle.load(file)
     file.close()
     # print lung_mask.dtype
-    lung_mask = binary_dilation(lung_mask,disk(2))
-    lung_mask = binary_closing(lung_mask,disk(10))
+    if dilation:
+        lung_mask = binary_dilation(lung_mask,disk(2))
+        lung_mask = binary_closing(lung_mask,disk(10))
     return image, lung_mask, nodule_mask, origin, spacing
 if __name__ == "__main__":
     image, origin, spacing = load_itk('../../lunadata/rawdata/1.3.6.1.4.1.14519.5.2.1.6279.6001.317087518531899043292346860596.mhd')

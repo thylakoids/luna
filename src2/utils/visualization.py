@@ -58,6 +58,5 @@ def impose(img,mask,col = np.array([256, 0, 0])/ 255.0,alpha=0.5):
     mask_3c = np.stack(
         (mask * col[0], mask * col[1],mask * col[2])).transpose(1, 2, 0)
 
-
     img_impose = img_lung_3c+(1-alpha)*img_nodule_3c+alpha*mask_3c
     return img_impose

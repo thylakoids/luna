@@ -8,6 +8,7 @@ from utils.xyz import load_slice
 import random
 import numpy as np
 from utils.normalize import normalizePlanes
+from utils.visualization import impose
 def vispre():
     #test data
     contains_test = ['subset{}'.format(9)]
@@ -37,24 +38,6 @@ def visSlice(contain='rawdata',num=10):
         plt.subplot(223)
         plt.imshow(nodule_mask, cmap=plt.cm.gray)
         plt.savefig(os.path.basename(imagePath).replace('.pkl.gz','.png'))
-def impose(img,mask,col = np.array([256, 0, 0])/ 255.0,alpha=0.5):
-    img_lung = img.copy()
-    img_nodule = img.copy()
-    img_lung[mask==1]=0
-    img_nodule[mask==0]=0
-
-    img_nodule_3c = np.stack(
-        (img_nodule, img_nodule, img_nodule)).transpose(1, 2, 0)
-    img_lung_3c = np.stack(
-        (img_lung, img_lung, img_lung)).transpose(1, 2, 0)
-    mask_3c = np.stack(
-        (mask * col[0], mask * col[1],mask * col[2])).transpose(1, 2, 0)
-
-
-
-    img_impose = img_lung_3c+(1-alpha)*img_nodule_3c+alpha*mask_3c
-    plt.imshow(img_impose)
-    plt.show()
 def visImpose(contain='rawdata',num=10):
     imagePaths = glob.glob(os.path.join(slices_folder(contain), '*+z.pkl.gz'))
     random.shuffle(imagePaths)
@@ -63,8 +46,9 @@ def visImpose(contain='rawdata',num=10):
         img, lung_mask, nodule_mask, _, _ = load_slice(imagePath)
         img = normalizePlanes(img)
         img[lung_mask==0]=1 # bright
-        impose(img,nodule_mask)
-
+        img_impose = impose(img,nodule_mask)
+        plt.imshow(img_impose)
+        plt.show()
 if __name__ =='__main__':
     visImpose()
 

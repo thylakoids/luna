@@ -3,14 +3,15 @@ import numpy as np
 import h5py
 import random
 
-from skimage.transform import rescale
-import scipy.ndimage
-from utils.pathname import slices_folder
+import scipy.ndimage as nd
+from utils.pathname import *
 from utils.xyz import load_slice
 from utils.normalize import normalizePlanes, zero_center
 from utils.visualization import impose
-from UNET import unet_model
+# from UNET import unet_model
 from matplotlib import pyplot as plt
+
+from config import conf
 
 
 def generate_data_from_file(paths):
@@ -18,8 +19,8 @@ def generate_data_from_file(paths):
     PositiveImagePaths=[]
     NegativeImagePaths=[]
     for path in paths:
-        PositiveImagePaths.extend(glob.glob('{}*.+z*pkl.gz'.format(path)))
-        NegativeImagePaths.extend(glob.glob('{}*.-z*pkl.gz'.format(path)))
+        PositiveImagePaths.extend(glob.glob(os.path.join(path,'*.+z*pkl.gz')))
+        NegativeImagePaths.extend(glob.glob(os.path.join(path,'*.-z*pkl.gz')))
     random.shuffle(PositiveImagePaths)
     random.shuffle(NegativeImagePaths)
 
@@ -37,9 +38,8 @@ def generate_data_from_file(paths):
                 lung = normalizePlanes(lung)
                 # lung = zero_center(lung)
                 resize=256.0/lung.shape[1]
-                lung = rescale(lung,resize)
-                nodule_mask = rescale(nodule_mask, resize,order=0)
-
+                lung = nd.interpolation.zoom(lung, resize,order =0)
+                nodule_mask = nd.interpolation.zoom(nodule_mask, resize,order =0)
                 x.append(lung[np.newaxis,:])
                 y.append(nodule_mask[np.newaxis,:])
         i+=batchSize/2
@@ -70,19 +70,19 @@ def main():
     model.save('Unet-model.h5')
     del model
 def tes_generator():
-    contains = ['subset0']
+    contains = conf.FOLDERS
     train_data = generate_data_from_file([slices_folder(contain) for contain in contains])
-    for i in range(10):
+    for j in range(10):
         x, y=train_data.next()
         print x.shape,y.shape
-        # _, plots = plt.subplots(3, 4,figsize=(25,25))
-        # for i in range(x.shape[0]):
-        #     plots[0, i].imshow(x[i][0],cmap=plt.cm.bone)
-        #     plots[1, i].imshow(y[i][0],cmap=plt.cm.bone)
-        #     xy=impose(x[i][0],y[i][0])
-        #     plots[2, i].imshow(xy)
-        plt.imshow(y[0][0])
-        plt.savefig('data{}.png'.format(i))
+        _, plots = plt.subplots(1, 3,figsize=(10,7))
+        plots[0].imshow(x[0][0],cmap='gray')
+        plots[1].imshow(y[0][0],cmap='gray')
+        xy=impose(x[0][0],y[0][0])
+        plots[2].imshow(xy)
+        plt.savefig('data{}.png'.format(j))
+        # plt.show()
+        
 
 
 if __name__ == '__main__':
