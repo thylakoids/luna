@@ -8,7 +8,7 @@ from utils.pathname import *
 from utils.xyz import load_slice
 from utils.normalize import normalizePlanes, zero_center
 from utils.visualization import impose
-# from UNET import unet_model
+from UNET import unet_model
 from matplotlib import pyplot as plt
 
 from config import conf
@@ -24,7 +24,7 @@ def generate_data_from_file(paths):
     random.shuffle(PositiveImagePaths)
     random.shuffle(NegativeImagePaths)
 
-    batchSize=4
+    batchSize=10
     i=0
     nSample=len(PositiveImagePaths)
     while 1:
@@ -52,10 +52,10 @@ def main():
     train_data=generate_data_from_file([slices_folder(contain) for contain in contains])
     validation_data = generate_data_from_file([slices_folder(contain) for contain in contains_val])
     test_data = generate_data_from_file([slices_folder(contain) for contain in contains_test])
+    model = unet_model(2)
 
-    model = unet_model()
-    steps=500
-    history=model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=6,verbose=2,
+    steps=200
+    history=model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=30,verbose=2,
                                 validation_data=validation_data,validation_steps=steps,initial_epoch=0)
     # to do : save histoty,plot history
     f=h5py.File("Unet-history.h5","w")
@@ -81,11 +81,11 @@ def tes_generator():
         xy=impose(x[0][0],y[0][0])
         plots[2].imshow(xy)
         plt.savefig('data{}.png'.format(j))
-        # plt.show()
+        plt.show()
         
 
 
 if __name__ == '__main__':
-    tes_generator()
+    main()
 
 

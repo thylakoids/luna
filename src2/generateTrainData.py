@@ -191,12 +191,3 @@ if __name__ == '__main__':
                 break
         else:
             Parallel(n_jobs=cpu_count()-1)(delayed(create_slice)(imagePath, annotations,contain) for imagePath in imagePaths)
-
-
-
-
-
-
-
-
-

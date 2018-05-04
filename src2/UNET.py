@@ -3,7 +3,7 @@ from keras.layers.convolutional import Convolution2D, MaxPooling2D, UpSampling2D
 from keras.optimizers import Adam
 from keras.models import Model
 from keras import backend as  K
-
+from keras.utils import multi_gpu_model
 
 # change the loss function
 def dice_coef(y_true, y_pred):
@@ -23,7 +23,7 @@ The UNET model is compiled in this function.
 '''
 
 
-def unet_model():
+def unet_model(gpus=2):
     inputs = Input((1, 256, 256))
     conv1 = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(inputs)
     conv1 = Dropout(0.2)(conv1)
@@ -72,6 +72,8 @@ def unet_model():
     conv10 = Convolution2D(1, 1, 1, activation='sigmoid')(conv9)
 
     model = Model(input=inputs, output=conv10)
+    if gpus>=2:
+        model = multi_gpu_model(model,gpus=gpus)
     model.summary()
     model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss, metrics=[dice_coef])
 

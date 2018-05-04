@@ -6,7 +6,7 @@ class Config:
 class TestingConfig(Config):
     TESTING = True
 class ProductionConfig(Config):
-    FOLDERS = ['subset{}'.format(i) for i in range(2,10)]
+    FOLDERS = ['subset{}'.format(i) for i in range(10)]
 class DevelopmentConfig(Config):
     pass
 config = {
@@ -15,4 +15,4 @@ config = {
     'Development':DevelopmentConfig
 }
 
-conf= config['Development']
+conf= config['Production']

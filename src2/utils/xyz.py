@@ -12,6 +12,7 @@ def load_itk(filename):
     origin = np.array(list(reversed(itkimage.GetOrigin())))
     spacing = np.array(list(reversed(itkimage.GetSpacing())))
     return image, origin, spacing # image.shape=(126,512,512)
+
 def world_2_voxel(world_coord, origin, spacing):
     stretched_voxel_coord = np.absolute(world_coord - origin)
     voxel_coord = stretched_voxel_coord / spacing
@@ -21,6 +22,7 @@ def voxel_2_world(voxel_coord, origin, spacing):
     stretched_voxel_coord = voxel_coord * spacing
     world_coord = stretched_voxel_coord + origin
     return world_coord
+
 def load_pickle(filename):
     file = gzip.open(filename,'rb')
     image = pickle.load(file)
@@ -28,6 +30,7 @@ def load_pickle(filename):
     spacing = pickle.load(file)
     file.close()
     return image, origin, spacing
+
 def load_slice(filename,dilation = True):
     file = gzip.open(filename,'rb')
     image = pickle.load(file) #int 16
