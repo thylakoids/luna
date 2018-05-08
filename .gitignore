@@ -24,3 +24,10 @@ creat_images.py
 
 *.png
 evaluationScript
+
+# nohub
+*.out
+*.txt
+*.h5
+*.hdf5
+synDropbox.py

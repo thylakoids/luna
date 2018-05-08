@@ -34,30 +34,32 @@ def generate_data_from_file(paths):
         for j in range(batchSize/2):
             for k in range(2):
                 lung, lung_mask, nodule_mask, _,_ =load_slice(imagePaths[k][(i+j)%nSample])
-                lung[lung_mask==0]=-1000
                 lung = normalizePlanes(lung)
-                # lung = zero_center(lung)
-                resize=256.0/lung.shape[1]
-                lung = nd.interpolation.zoom(lung, resize,order =0)
-                nodule_mask = nd.interpolation.zoom(nodule_mask, resize,order =0)
+                lung = zero_center(lung)
+                lung[lung_mask == 0] = -1
+
                 x.append(lung[np.newaxis,:])
                 y.append(nodule_mask[np.newaxis,:])
         i+=batchSize/2
         i=i%nSample
         yield np.array(x),np.array(y)
-def main():
+def main(use_existing=False):
     contains = ['subset{}'.format(i) for i in range(8)]
     contains_val = ['subset{}'.format(8)]
     contains_test = ['subset{}'.format(9)]
     train_data=generate_data_from_file([slices_folder(contain) for contain in contains])
     validation_data = generate_data_from_file([slices_folder(contain) for contain in contains_val])
     test_data = generate_data_from_file([slices_folder(contain) for contain in contains_test])
-    model = unet_model(2)
-
-    steps=200
-    history=model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=30,verbose=2,
+    model = unet_model(1)
+    print('-' * 30)
+    print('Loading saved weights...')
+    if use_existing:
+        model.load_weights('unet.hdf5')
+    print('-' * 30)
+    steps=conf.STEPS
+    history=model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=conf.EPOCHS,verbose=2,
                                 validation_data=validation_data,validation_steps=steps,initial_epoch=0)
-    # to do : save histoty,plot history
+    #save histoty,plot history
     f=h5py.File("Unet-history.h5","w")
     f['dice_coef']=history.history['dice_coef']
     f['val_dice_coef']=history.history['val_dice_coef']
@@ -70,22 +72,19 @@ def main():
     model.save('Unet-model.h5')
     del model
 def tes_generator():
-    contains = conf.FOLDERS
+    contains = ['subset{}'.format(i) for i in range(8)]
     train_data = generate_data_from_file([slices_folder(contain) for contain in contains])
     for j in range(10):
-        x, y=train_data.next()
+        x, y = train_data.next()
         print x.shape,y.shape
         _, plots = plt.subplots(1, 3,figsize=(10,7))
         plots[0].imshow(x[0][0],cmap='gray')
         plots[1].imshow(y[0][0],cmap='gray')
-        xy=impose(x[0][0],y[0][0])
+        xy=impose(x[0][0]+1,y[0][0])/2.0
         plots[2].imshow(xy)
         plt.savefig('data{}.png'.format(j))
         plt.show()
-        
-
-
 if __name__ == '__main__':
-    main()
+    main(True)
 
 
