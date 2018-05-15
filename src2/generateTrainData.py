@@ -13,17 +13,20 @@ from joblib import Parallel, delayed
 
 from utils.pathname import *
 from utils.xyz import load_pickle, load_itk, load_slice, world_2_voxel, voxel_2_world
+from utils.visualization import myball
 
 from config import conf
 
-def draw_circlesV2(image, cands, origin, spacing):
+
+
+def draw_circles2(image, cands, origin, spacing, size=1):
     # looks more clever, but less precise than draw_circles
     # make empty matrix, which will be filled with the mask
     image_mask = np.zeros(image.shape)
     # run over all the nodules in the lungs
     for ca in cands.values:
         radius = ca[4] / 2
-        world_ball = ball(radius)
+        world_ball = myball(radius,size)
         image_ball = nd.interpolation.zoom(world_ball, 1 / spacing,order=0)
         world_origin = np.array((ca[3], ca[2], ca[1]))
         image_origin = world_2_voxel(world_origin, origin, spacing)  # origin

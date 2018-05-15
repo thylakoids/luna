@@ -31,3 +31,6 @@ evaluationScript
 *.h5
 *.hdf5
 synDropbox.py
+
+# pic and video
+etc

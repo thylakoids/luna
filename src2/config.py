@@ -19,4 +19,4 @@ config = {
     'Development':DevelopmentConfig
 }
 
-conf= config['Production']
+conf= config['Testing']
