@@ -5,12 +5,15 @@ class Config:
     ANNOTATION_PATH = correct_path('../lunadata/CSVFILE/annotations.csv')
     STEPS = 5
     EPOCHS = 3
+    BATCHSIZE = 2
 class TestingConfig(Config):
     TESTING = True
 class ProductionConfig(Config):
     FOLDERS = ['subset{}'.format(i) for i in range(10)]
-    STEPS = 200
-    EPOCHS = 30
+
+    BATCHSIZE = 32
+    STEPS = int(500/BATCHSIZE)# 4 steps one epoch
+    EPOCHS = 20
 class DevelopmentConfig(Config):
     pass
 config = {
@@ -19,4 +22,4 @@ config = {
     'Development':DevelopmentConfig
 }
 
-conf= config['Testing']
+conf= config['Production']
