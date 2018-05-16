@@ -32,8 +32,29 @@ def crop(lung,nodule_mask,xpos,ypos,h,w):
     nodule_mask = nodule_mask[xpos:xpos+h,ypos:ypos+w]
     lung = nd.interpolation.zoom(lung, [512.0/h,512.0/w],order=0)
     nodule_mask = nd.interpolation.zoom(nodule_mask, [512.0/h,512.0/w],order=0)
-
     return lung,nodule_mask
+
+class ROI():
+'''
+padding and cropping image
+
+(512,512)--cropping-->(h,w)--resize-->(512,512)
+(512,512)<--padding--(h,w)<--resize--(512,512)
+'''
+    def __init__(self,lung,lung_mask,nodule_mask):
+        self.size = 512.0
+        self.lung= lung
+        self.lung_mask=lung_mask
+        self.nodule_mask=nodule_mask
+        pos = np.where(lung_mask >0)
+        self.x = pos[0].min()
+        self.y = pos[1].min()
+        self.h = pos[0].max()-pos[0].min()
+        self.w = pos[1].max()-pos[1].min()
+        self.resize = [1.0*self.size/self.h,1.0*self.size/self.w]
+    def cropResize(self):
+        lung = self.lung[self.x:self.x+self.h,self.y:self.y+self.w]
+
 def generate_data_from_file(paths):
     random.seed(10)
     PositiveImagePaths=[]
