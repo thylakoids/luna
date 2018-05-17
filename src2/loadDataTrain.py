@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 # from utils.myMultiGpu import multi_gpu_model
 from keras.utils import multi_gpu_model
 from keras.optimizers import Adam,SGD
+from keras.models import load_model
 
 from config import conf
 
@@ -33,27 +34,6 @@ def crop(lung,nodule_mask,xpos,ypos,h,w):
     lung = nd.interpolation.zoom(lung, [512.0/h,512.0/w],order=0)
     nodule_mask = nd.interpolation.zoom(nodule_mask, [512.0/h,512.0/w],order=0)
     return lung,nodule_mask
-
-class ROI():
-'''
-padding and cropping image
-
-(512,512)--cropping-->(h,w)--resize-->(512,512)
-(512,512)<--padding--(h,w)<--resize--(512,512)
-'''
-    def __init__(self,lung,lung_mask,nodule_mask):
-        self.size = 512.0
-        self.lung= lung
-        self.lung_mask=lung_mask
-        self.nodule_mask=nodule_mask
-        pos = np.where(lung_mask >0)
-        self.x = pos[0].min()
-        self.y = pos[1].min()
-        self.h = pos[0].max()-pos[0].min()
-        self.w = pos[1].max()-pos[1].min()
-        self.resize = [1.0*self.size/self.h,1.0*self.size/self.w]
-    def cropResize(self):
-        lung = self.lung[self.x:self.x+self.h,self.y:self.y+self.w]
 
 def generate_data_from_file(paths):
     random.seed(10)
@@ -107,13 +87,13 @@ def main(gpus=2):
     gpu_model.summary()
     sgd = SGD(lr=0.1,decay = 1e-6,momentum=0.9,nesterov=True)
     adam = Adam(lr=1.0e-5)
-    gpu_model.compile(optimizer=adam, loss=dice_coef_loss, metrics=[dice_coef])
+    gpu_model.compile(optimizer=sgd, loss=dice_coef_loss, metrics=[dice_coef])
     #trian model
     steps=conf.STEPS
     history=gpu_model.fit_generator(train_data,steps_per_epoch=steps*8,epochs=conf.EPOCHS,verbose=2,
                                 validation_data=validation_data,validation_steps=steps,initial_epoch=0)
     #save histoty,plot history
-    f=h5py.File("Unet-history.h5","w")
+    f=h5py.File("Unet-history2.h5","w")
     f['dice_coef']=history.history['dice_coef']
     f['val_dice_coef']=history.history['val_dice_coef']
     f.close
@@ -122,11 +102,11 @@ def main(gpus=2):
     print('\ntest loss',loss)
     print('dice_coef',accuracy)
     #save then delete model
-    model.save('Unet-model.h5')
+    model.save('Unet-model2.h5')
     del model
     del gpu_model
 def tes_generator():
-    contains = ['subset{}'.format(i) for i in range(8)]
+    contains = conf.FOLDERS
     train_data = generate_data_from_file([slices_folder(contain) for contain in contains])
     for j in range(10):
         x, y = train_data.next()
@@ -139,7 +119,8 @@ def tes_generator():
         plt.savefig('data{}.png'.format(j))
         plt.show()
 if __name__ == '__main__':
-    # tes_generator()
-    main()
+    tes_generator()
+    # main()
+
 
 

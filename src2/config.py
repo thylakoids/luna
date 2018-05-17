@@ -5,7 +5,7 @@ class Config:
     ANNOTATION_PATH = correct_path('../lunadata/CSVFILE/annotations.csv')
     STEPS = 5
     EPOCHS = 3
-    BATCHSIZE = 2
+    BATCHSIZE = 8
 class TestingConfig(Config):
     TESTING = True
 class ProductionConfig(Config):
@@ -22,4 +22,4 @@ config = {
     'Development':DevelopmentConfig
 }
 
-conf= config['Production']
+conf= config['Development']

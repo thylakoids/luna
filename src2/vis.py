@@ -10,15 +10,18 @@ from utils.pathname import *
 from utils.normalize import normalizePlanes
 from utils.visualization import impose
 from utils.xyz import load_slice
+
+from config import conf
 def vispre():
     #test data
-    contains_test = ['subset{}'.format(9)]
+    contains_test = conf.FOLDERS
     test_data = generate_data_from_file([slices_folder(contain) for contain in contains_test])
     #load model
     model = load_model("Unet-model.h5", custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
 
 
     X,Y = test_data.next()
+    print X.shape
     Y_pre = model.predict(X,verbose=0)
     _,plots = plt.subplots(3,4)
     for i in range(4):
