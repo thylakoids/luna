@@ -1,5 +1,9 @@
 from loadDataTrain import *
 from numpy import argsort
+from utils.xyz import load_predict
+from utils.normalize import normalize
+from utils.visualization import array2video,impose2
+
 import re
 import pickle
 import gzip
@@ -84,26 +88,60 @@ def lung3DAI():
             lung_mask3D=[]
             nodule_mask3D=[]
             nodule_mask_pre3D=[]
+            i = 0
             for slicePath in slicePaths:
                 print os.path.basename(slicePath)
                 lung, lung_mask, nodule_mask, _,_ =load_slice(slicePath)
                 AI = lung2DAI(lung,lung_mask,nodule_mask)
                 noduel_mask_pre = AI.predict()
 
-                lung3D.append(lung[np.newaxis,:])
-                lung_mask3D.append(lung_mask[np.newaxis,:])
-                nodule_mask3D.append(nodule_mask[np.newaxis,:])
-                nodule_mask_pre3D.append(noduel_mask_pre[np.newaxis,:])
-
+                lung3D.append(lung)
+                lung_mask3D.append(lung_mask)
+                nodule_mask3D.append(nodule_mask)
+                nodule_mask_pre3D.append(noduel_mask_pre)
+                i+=1
+                if i>=30:
+                    pass
+            print np.array(lung3D).shape
             #save it
             savePath = os.path.join(predict_folder(contain),imagename+'.pkl.gz')
-            file = gzip.open(savePath)
-            pickle.dump(lung3D,file,protocol=-1)
-            pickle.dump(lung_mask3D,file,protocol=-1)
-            pickle.dump(nodule_mask3D,file,protocol=-1)
-            pickle.dump(nodule_mask_pre3D,file,protocol=-1)
+            file = gzip.open(savePath,'wb')
+            pickle.dump(np.array(lung3D),file,protocol=-1)
+            pickle.dump(np.array(lung_mask3D),file,protocol=-1)
+            pickle.dump(np.array(nodule_mask3D),file,protocol=-1)
+            pickle.dump(np.array(nodule_mask_pre3D),file,protocol=-1)
             file.close()
+def createvideo():
+    contains = conf.FOLDERS
+    for contain in contains:
+        paths = glob.glob(os.path.join(
+            predict_folder(contain),
+            '*.pkl.gz'))
+        for path in paths:
+            lung3D,lung_mask3D,nodule_mask3D,nodule_mask_pre3D=load_predict(path)
+            #1
+            video1 = np.stack([lung3D]*3,axis = -1)
+            video1 = (video1-video1.min())/(video1.max()-video1.min())
+            #2
+            lungn3D = normalizePlanes(lung3D)
+            lungn3D=(lungn3D+1)/2
+            lungn3D[lung_mask3D==0]=0
+            video2 = impose2(lungn3D,nodule_mask3D)
+            #3
+            video3 = np.stack([nodule_mask_pre3D]*3,axis = -1)
 
+            # put it togather
+            # video = np.ones(())
+            videoshape = np.array(video1.shape)
+            videoshape[2]=(videoshape[2]*3)+10*2
+
+            video = np.ones(videoshape)
+            video[:,:,0:0+512,:]=video1
+            video[:,:,512+10:10+512+512,:]=video2
+            video[:,:,512+10+512+10:10+512+512+512+10,:]=video3
+
+            savePath = path.replace('.pkl.gz','.mp4')
+            array2video(video,savePath)
 
 if __name__ == '__main__':
-    lung3DAI()
+    createvideo()

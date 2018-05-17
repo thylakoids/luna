@@ -18,6 +18,7 @@ def normalizePlanes(npzarray):
     npzarray[npzarray > 1] = 1.
     npzarray[npzarray < 0] = 0.
     return npzarray
+
 def normalize(lung,lung_mask):
     lung = normalizePlanes(lung)
 

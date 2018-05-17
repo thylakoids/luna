@@ -1,10 +1,13 @@
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib import pyplot as plt
 from skimage import measure
-
+from skimage.color import gray2rgb
 import scipy.ndimage
+import skvideo.io
+
 
 import numpy as np
+from  scipy import stats
 
 def plot_ct_scan(scan,name=False,plot=True):
     skip=60
@@ -60,3 +63,62 @@ def impose(img,mask,col = np.array([256, 0, 0])/ 255.0,alpha=0.5):
 
     img_impose = img_lung_3c+(1-alpha)*img_nodule_3c+alpha*mask_3c
     return img_impose
+
+def impose2(img,mask,col = np.array([255, 0, 0])/ 255.0):
+    '''
+    impose 2 gray img into one rbg img
+    '''
+    img_lung = img.copy()
+    img_nodule = img.copy()
+    img_lung[mask==1]=0
+    img_nodule[mask==0]=0
+
+
+    img_lung_3c = np.stack([img_lung]*3,axis = -1)
+    img_nodule_3c=np.stack(
+        (img_nodule*col[0],img_nodule*col[1],img_nodule*col[2]),axis = -1)
+
+    mask_3c = np.stack([mask]*3,axis = -1)
+
+    blended = mask_3c*img_nodule_3c+(1-mask_3c)*img_lung_3c
+    return blended
+
+
+def myball(radius,size=4, dtype=np.float32):
+    draw_radius=radius*size
+    n = 2 * draw_radius + 1
+    Z, Y, X = np.mgrid[-draw_radius:draw_radius:n * 1j,
+                       -draw_radius:draw_radius:n * 1j,
+                       -draw_radius:draw_radius:n * 1j]
+    s = X ** 2 + Y ** 2 + Z ** 2
+    if size!=1:
+        mask = stats.norm.pdf(np.sqrt(s)/radius)
+        return np.array(mask/mask.max(), dtype=dtype)
+    else:
+        return np.array(s <= radius * radius, dtype=dtype)
+def array2video(img,path):
+    '''
+    0-1
+    '''
+    img = img*255
+    img = img.astype(np.uint8)
+
+
+    rate='1'
+    inputdict={
+    '-r':rate,
+    }
+    outputdict={
+    '-vcodec': 'libx264',
+    '-pix_fmt': 'yuv420p',
+    '-b':'300000000',
+    '-r': rate,
+    }
+    skvideo.io.vwrite(path,img,inputdict=inputdict,outputdict=outputdict)
+
+
+if __name__=='__main__':
+    mask = myball(5)
+    plt.imshow(mask[20])
+    plt.show()
+

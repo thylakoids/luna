@@ -31,6 +31,15 @@ def load_pickle(filename):
     file.close()
     return image, origin, spacing
 
+def load_predict(filename):
+    file = gzip.open(filename,'rb')
+    a = pickle.load(file)
+    b = pickle.load(file)
+    c = pickle.load(file)
+    d = pickle.load(file)
+    file.close()
+    return a, b, c, d
+
 def load_slice(filename,dilation = True):
     file = gzip.open(filename,'rb')
     image = pickle.load(file) #int 16
