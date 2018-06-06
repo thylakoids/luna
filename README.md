@@ -5,6 +5,7 @@ luna16
 1. [step0_downData](#step0_downdata)
 1. [step1_preprocess](#step1_preprocess)
 1. [videowjpg jpg2video](#videowjpg-jpg2video)
+1. [evaluation on June 5th](#evaluation-on-june-5th)
 
 <!-- /MarkdownTOC -->
 
@@ -27,3 +28,9 @@ for 3DsegmentedLungs:
 	generate 2D slices
 ```
 ## [videowjpg jpg2video](http://www.scikit-video.org/stable/index.html)
+
+
+## evaluation on June 5th
+*update slice, include none lung slice  
+*generate predict pic
+*evaluate

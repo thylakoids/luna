@@ -104,7 +104,7 @@ def array2video(img,path):
     img = img.astype(np.uint8)
 
 
-    rate='1'
+    rate='10'
     inputdict={
     '-r':rate,
     }

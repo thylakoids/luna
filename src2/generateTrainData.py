@@ -117,18 +117,18 @@ def create_slice(imagePath, annotations, contain):
         lung = padding_lung[z]
         lung_mask = padding_lung_mask[z]
         mask = nodule_mask[z]
-        if lung_mask.sum()>0:#this slice has some lung
-            if mask.sum()>0:#this slice has nodule
-                savePath = os.path.join(slices_folder(contain),'{}_slice{}.+z.pkl.gz'.format(imageName,z))
-            else:#this slice has lung but no nodule
-                savePath = os.path.join(slices_folder(contain), '{}_slice{}.-z.pkl.gz'.format(imageName, z))
-            file = gzip.open(savePath, 'wb')
-            pickle.dump(lung, file, protocol=-1)
-            pickle.dump(lung_mask,file,protocol=-1)
-            pickle.dump(mask, file, protocol=-1)
-            pickle.dump(new_origin, file, protocol=-1)
-            pickle.dump(new_spacing,file,protocol=-1)
-            file.close()
+        # if lung_mask.sum()>0:#this slice has some lung
+        if mask.sum()>0:#this slice has nodule
+            savePath = os.path.join(slices_folder(contain),'{}_slice{}.+z.pkl.gz'.format(imageName,z))
+        else:#this slice has lung but no nodule
+            savePath = os.path.join(slices_folder(contain), '{}_slice{}.-z.pkl.gz'.format(imageName, z))
+        file = gzip.open(savePath, 'wb')
+        pickle.dump(lung, file, protocol=-1)
+        pickle.dump(lung_mask,file,protocol=-1)
+        pickle.dump(mask, file, protocol=-1)
+        pickle.dump(new_origin, file, protocol=-1)
+        pickle.dump(new_spacing,file,protocol=-1)
+        file.close()
     # for y in range(nodule_mask.shape[1]):
     #     lung = padding_lung[:,y,:]
     #     lung_mask = padding_lung_mask[:,y,:]

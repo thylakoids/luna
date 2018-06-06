@@ -37,8 +37,10 @@ def load_predict(filename):
     b = pickle.load(file)
     c = pickle.load(file)
     d = pickle.load(file)
+    e = pickle.load(file)
+    f = pickle.load(file)
     file.close()
-    return a, b, c, d
+    return a, b, c, d, e, f
 
 def load_slice(filename,dilation = True):
     file = gzip.open(filename,'rb')

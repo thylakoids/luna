@@ -14,4 +14,4 @@ def plt_history(filename):
 	plt.savefig(filename.replace('.h5','.png'))
 
 if __name__=='__main__':
-	plt_history('../../etc/Unet-history3.h5')
+	plt_history('../../etc/Unet-history5.h5')

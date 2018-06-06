@@ -1,12 +1,17 @@
 from loadDataTrain import *
 from numpy import argsort
-from utils.xyz import load_predict
+from utils.xyz import load_predict, world_2_voxel
 from utils.normalize import normalize
 from utils.visualization import array2video,impose2
+from skimage.feature import blob_dog
+
 
 import re
 import pickle
 import gzip
+
+import pandas as pd
+import numpy as np
 class lung2DAI():
     '''
     padding and cropping image
@@ -35,8 +40,10 @@ class lung2DAI():
     def traindata(self):
         lung,nodule_mask = self._cropResize()
         return lung[np.newaxis,np.newaxis,:],nodule_mask[np.newaxis,np.newaxis,:]
-    def predict(self):
-        model = load_model("Unet-model.h5", custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
+    def predict(self,model):
+        '''
+        note: load model on every 2d pic, may slow down the process!!!!
+        '''
         Xr,Yr = self.traindata()
         Yr_pre = model.predict(Xr,verbose=0)
         Yo_pre = self._resizePadding(Yr_pre.squeeze())
@@ -69,6 +76,7 @@ class lung2DAI():
 
 def lung3DAI():
     contains = conf.FOLDERS
+    model = load_model("Unet-model.h5", custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
     for contain in contains:
         mkdir(predict_folder(contain))
         imagenames = glob.glob(os.path.join(
@@ -83,6 +91,7 @@ def lung3DAI():
             #sort the slices
             slicebasePaths = [os.path.basename(x) for x in slicePaths]
             index = argsort([int(re.findall('^[\.0-9]+_slice([0-9]+).+gz$',x)[0]) for x in slicebasePaths])
+
             slicePaths=[slicePaths[x] for x in index]
             lung3D=[]
             lung_mask3D=[]
@@ -91,9 +100,9 @@ def lung3DAI():
             i = 0
             for slicePath in slicePaths:
                 print os.path.basename(slicePath)
-                lung, lung_mask, nodule_mask, _,_ =load_slice(slicePath)
+                lung, lung_mask, nodule_mask, origin, space =load_slice(slicePath)
                 AI = lung2DAI(lung,lung_mask,nodule_mask)
-                noduel_mask_pre = AI.predict()
+                noduel_mask_pre = AI.predict(model)
 
                 lung3D.append(lung)
                 lung_mask3D.append(lung_mask)
@@ -110,8 +119,13 @@ def lung3DAI():
             pickle.dump(np.array(lung_mask3D),file,protocol=-1)
             pickle.dump(np.array(nodule_mask3D),file,protocol=-1)
             pickle.dump(np.array(nodule_mask_pre3D),file,protocol=-1)
+            pickle.dump(origin,file,protocol=-1)
+            pickle.dump(space,file,protocol=-1)
             file.close()
 def createvideo():
+    '''
+    creat video for demonstration
+    '''
     contains = conf.FOLDERS
     for contain in contains:
         paths = glob.glob(os.path.join(
@@ -119,14 +133,14 @@ def createvideo():
             '*.pkl.gz'))
         for path in paths:
             lung3D,lung_mask3D,nodule_mask3D,nodule_mask_pre3D=load_predict(path)
+            lung3D_norm = normalizePlanes(lung3D)
             #1
-            video1 = np.stack([lung3D]*3,axis = -1)
-            video1 = (video1-video1.min())/(video1.max()-video1.min())
+            video1 = np.stack([lung3D_norm]*3,axis = -1)
+
             #2
-            lungn3D = normalizePlanes(lung3D)
-            lungn3D=(lungn3D+1)/2
-            lungn3D[lung_mask3D==0]=0
-            video2 = impose2(lungn3D,nodule_mask3D)
+            # lungn3D=(lungn3D+1)/2
+            lung3D_norm[lung_mask3D==0]=0
+            video2 = impose2(lung_mask3D,nodule_mask3D)
             #3
             video3 = np.stack([nodule_mask_pre3D]*3,axis = -1)
 
@@ -140,8 +154,81 @@ def createvideo():
             video[:,:,512+10:10+512+512,:]=video2
             video[:,:,512+10+512+10:10+512+512+512+10,:]=video3
 
-            savePath = path.replace('.pkl.gz','.mp4')
+            #save 1
+            savePath = path.replace('.pkl.gz','_3.mp4')
+            video = video[20:-20,:,:,:]
             array2video(video,savePath)
+            # #save 2
+            # newvideo=cumulative(video)
+            # savePath = path.replace('.pkl.gz','2.mp4')
+            # array2video(video,savePath)
+
+
+
+def _evaluaton_annotation(gts,pres):
+    gts_evaluation = np.zeros((gts.shape[0],1))# 0:FN, 1:TP
+    pres_evaluation = np.zeros((pres.shape[0],1))# 0:FP, 1:TP, 2:irrelevant
+    for i in range(gts.shape[0]):
+        for j in range(pres.shape[0]):
+            if np.linalg.norm(gts[i,:3]-pres[j,:3])<gts[i,3]:
+                if gts_evaluation[i]=0:
+                    gts_evaluation[i]=1
+                    pres_evaluation[j]=1
+                # this gt already hit by other prediction,mark this one irrelevent
+                else:
+                    pres_evaluation[j]=2
+    # pre_P = pres_evaluation.sum()
+    # pre_N = (1-pres_evaluation).sum()
+    # gt_P = gts_evaluation.sum()
+    # gt_N =(1-gts_evaluation).sum()
+    return gts_evaluation,pres_evaluation
+
+def evaluation():
+    contains = conf.FOLDERS
+    annotations_path = conf.ANNOTATION_PATH
+    annotations = pd.read_csv(annotations_path)
+    gt_P=0
+    gt_N=0
+    pre_N=0
+    pre_P=0
+    for contain in contains:
+        paths = glob.glob(os.path.join(predict_folder(contain),'*.pkl.gz'))
+        for path in paths:
+            lung3D,lung_mask3D,nodule_mask3D,nodule_mask_pre3D,origin,spacing=load_predict(path)
+            imageName = os.path.basename(path).replace('.pkl.gz', '')
+            image_annotations = annotations[annotations['seriesuid'] == imageName]
+            image_annotations_voxel = []
+            for ca in image_annotations.values:
+                annotation_voxel = world_2_voxel(np.array((ca[3], ca[2], ca[1])),origin,spacing)
+                #coordinate and radius
+                image_annotations_voxel.append(np.hstack((annotation_voxel,ca[4]/2)))
+            image_annotations_voxel = np.array(image_annotations_voxel)
+            image_predict_voxel = blob_dog(nodule_mask_pre3D,threshold=0.1,min_sigma=1.5,max_sigma=15)
+            gts,pres=_evaluaton_annotation(image_annotations_voxel,image_predict_voxel)
+            gt_P+=(gts==1).sum()
+            gt_N+=(gts==0).sum()
+            pre_P+=(pre==1).sum()
+            pre_N+=(pre==0).sum()
+
+    recall = 1.0*gt_P/(gt_P+gt_N)
+    precision = 1.0*pre_P/(pre_P+pre_N)
+    return recall, precision
+
+
+def cumulative(img,window=30):
+    '''
+    transparent
+    '''
+    nz = img.shape[0]
+    newimg = []
+    for i in range(nz-window):
+        slice = img[i:i+window].sum(axis =0)
+        slice[slice>1]=1
+        newimg.append(slice)
+    return np.array(newimg)
+
 
 if __name__ == '__main__':
-    createvideo()
+    # lung3DAI()
+    # createvideo()
+    evaluation()
