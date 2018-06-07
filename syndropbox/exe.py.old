@@ -1,0 +1,48 @@
+import os 
+import sys
+import time
+
+updatefile = False
+run = False
+monitor = True
+link =False
+
+print '*'*24
+print time.strftime("%Y-%m-%d %H:%M:%S")
+print os.getcwd(),'$'
+print '*'*24
+
+def shell(cmd):
+    print os.getcwd(),'$',cmd
+    os.system(cmd)
+
+if link:
+    shell('ln src2/loadDataTrain.py ~/Dropbox/loadDataTrain.py')
+    shell('ln src2/continue.py ~/Dropbox/continue.py')
+    shell('ln src2/config.py ~/Dropbox/config.py')
+
+if updatefile:
+    cmd = 'cp ~/Dropbox/loadDataTrain.py src2/loadDataTrain.py'
+    print os.getcwd(),'$',cmd
+    os.system(cmd)
+
+    cmd = 'cp ~/Dropbox/config.py src2/config.py'
+    print os.getcwd(),'$',cmd
+    os.system(cmd)
+    shell('cp ~/Dropbox/continue.py src2/continue.py')
+
+
+if run:
+    #monitor
+    cmd = 'nohup python src2/continue.py > src2/Unet6.out 2>&1 &'
+    print os.getcwd(),'$',cmd
+    os.system(cmd)
+
+time.sleep(3)
+if monitor:
+    #monitor
+    shell('rmmod nvidia_uvm')
+    # shell('w')
+
+print '-'*50
+print '\n'

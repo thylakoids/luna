@@ -97,7 +97,6 @@ def lung3DAI():
             lung_mask3D=[]
             nodule_mask3D=[]
             nodule_mask_pre3D=[]
-            i = 0
             for slicePath in slicePaths:
                 print os.path.basename(slicePath)
                 lung, lung_mask, nodule_mask, origin, space =load_slice(slicePath)
@@ -108,9 +107,6 @@ def lung3DAI():
                 lung_mask3D.append(lung_mask)
                 nodule_mask3D.append(nodule_mask)
                 nodule_mask_pre3D.append(noduel_mask_pre)
-                i+=1
-                if i>=30:
-                    pass
             print np.array(lung3D).shape
             #save it
             savePath = os.path.join(predict_folder(contain),imagename+'.pkl.gz')
@@ -171,7 +167,7 @@ def _evaluaton_annotation(gts,pres):
     for i in range(gts.shape[0]):
         for j in range(pres.shape[0]):
             if np.linalg.norm(gts[i,:3]-pres[j,:3])<gts[i,3]:
-                if gts_evaluation[i]=0:
+                if gts_evaluation[i]==0:
                     gts_evaluation[i]=1
                     pres_evaluation[j]=1
                 # this gt already hit by other prediction,mark this one irrelevent
